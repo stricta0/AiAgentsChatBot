@@ -1,0 +1,51 @@
+{
+  "agents": [
+    {
+      "name": "TECHNICAL_SPECIALIST",
+      "description": "Handles technical questions grounded in local technical documentation.",
+      "canHandle": [
+        "API usage questions",
+        "integration troubleshooting",
+        "configuration issues",
+        "deployment questions",
+        "documented technical errors"
+      ],
+      "cannotHandle": [
+        "refunds",
+        "pricing",
+        "invoices",
+        "general knowledge questions",
+        "customer account lookups unrelated to technical documentation"
+      ],
+      "examples": [
+        "Why do I get a 401 error?",
+        "How do I configure webhooks?",
+        "What does the deployment guide say about environment variables?"
+      ]
+    },
+
+
+    {
+      "name": "BILLING_SPECIALIST",
+      "description": "Handles billing-related support requests and billing actions.",
+      "canHandle": [
+        "plan and price questions",
+        "refund requests",
+        "invoice questions",
+        "subscription cancellation",
+        "opening billing support cases"
+      ],
+      "cannotHandle": [
+        "technical troubleshooting",
+        "API behavior questions",
+        "general knowledge questions",
+        "technical-document interpretation"
+      ],
+      "examples": [
+        "What plan am I on?",
+        "Can I get a refund?",
+        "Open a billing ticket for me."
+      ]
+    }
+  ]
+}

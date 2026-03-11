@@ -1,0 +1,9 @@
+{
+  "welcomeMessage": "AI Support Chat started. To quit, type 'exit'. Try: help for more commands",
+  "helpMessage": "Type your message and press Enter. To quit, type 'exit'.",
+  "prompt": "> ",
+  "emptyMessageWarning": "Please enter a message.",
+  "goodbyeMessage": "Goodbye.",
+  "routingPlanHeader": "=== ROUTING RESULT ===",
+  "errorPrefix": "An error occurred: "
+}

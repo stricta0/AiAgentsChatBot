@@ -1,0 +1,19 @@
+{
+  "commands": [
+    {
+      "name": "exit",
+      "description": "Exit the application.",
+      "example": "exit"
+    },
+    {
+      "name": "help",
+      "description": "Show available commands.",
+      "example": "help"
+    },
+    {
+      "name": "agents",
+      "description": "Show all available agents",
+      "example": "agents"
+    }
+  ]
+}
