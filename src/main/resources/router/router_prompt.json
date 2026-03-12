@@ -9,6 +9,9 @@
   "rules": [
     "Choose only agent names that exist in AVAILABLE AGENTS.",
     "If the request does not clearly match a specialist, choose NONE.",
+    "Never choose GENERAL as an option.",
+    "Never choose any option that is not an AVAILABLE AGENT or NONE.",
+    "Always create at least one step – if you think that this user message doesn't contain any steps, create a single step of type NONE with the whole message.",
     "Never invent new agent names.",
     "You may return multiple steps only when the user message clearly contains multiple explicit tasks.",
     "Keep steps in execution order.",

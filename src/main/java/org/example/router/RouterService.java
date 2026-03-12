@@ -1,6 +1,7 @@
 package org.example.router;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.conversation.ConversationHistory;
 import org.example.llm.LlmClient;
 import org.example.router.model.AgentCatalog;
 import org.example.router.model.RouterPromptDefinition;
@@ -22,14 +23,14 @@ public class RouterService {
         this.routerPromptDefinition = RouterPromptDefinition.load();
     }
 
-    public RoutingPlan route(String userMessage) throws Exception {
+    public RoutingPlan route(String userMessage, ConversationHistory history) throws Exception {
         String prompt = promptFactory.buildPrompt(
                 userMessage,
                 agentCatalog.getAgents(),
                 routerPromptDefinition
         );
 
-        String responseText = llmClient.getResponseFromGemini(prompt);
+        String responseText = llmClient.getResponseFromGemini(prompt, history);
         String cleanJson = stripCodeFences(responseText);
         return objectMapper.readValue(cleanJson, RoutingPlan.class);
     }

@@ -14,6 +14,11 @@
       "name": "agents",
       "description": "Show all available agents",
       "example": "agents"
+    },
+    {
+      "name": "history",
+      "description": "Show full conversation history.",
+      "example": "history"
     }
   ]
 }

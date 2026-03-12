@@ -11,18 +11,19 @@ public class HelpCommand implements ConsoleCommandHandler {
     }
 
     @Override
-    public void execute(ConsoleCommandContext context) {
-        System.out.println();
+    public String execute(ConsoleCommandContext context) {
+        StringBuilder sb = new StringBuilder();
 
         for (ConsoleCommandDefinition command : context.getCommands().getCommands()) {
-            System.out.printf(
-                    "%s - %s (example: %s)%n",
-                    command.getName(),
-                    command.getDescription(),
-                    command.getExample()
-            );
+            sb.append(command.getName())
+                    .append(" - ")
+                    .append(command.getDescription())
+                    .append(" (example: ")
+                    .append(command.getExample())
+                    .append(")")
+                    .append("\n");
         }
 
-        System.out.println();
+        return sb.toString().trim();
     }
 }

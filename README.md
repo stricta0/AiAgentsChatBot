@@ -21,7 +21,12 @@ gemini-2.5-flash-lite - wieksze darmowe limity
 
 # TODO: setup Dumy acc with api key
 # TODO: dodać może ten key jakoś do .env czy czegoś w tym stylu idk
-
+# TODO: zmienić router_prompt.json tak żeby również miał pole outputFormat tak jak uknown_resoultion_prompt
+# TODO: jest w wielu miejscach hardocowane sciezki to resoursow - fajnie by to bylo przeniesc do jakiegos .env czy cos w tym stylu
+# TODO: routing_plan zdefiniowany osobno w router_prompt.json i unknow_resolution_prompt.json
+# TODO: hardcodowane niektóre nazwy np. w UnknownResolutionService ABORT I RESOLVED 
+# TODO: niektóre funkcje się powtarzają np. stripCodeFences w Router i UnknownResolution Service
+# TODO: pousuwać .load() z polowy tych serwisów i zamienic na przekazywanie przez konstruktor
 # AI Support Agents Router
 
 ## Overview

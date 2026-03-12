@@ -3,6 +3,7 @@ package org.example.llm;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.config.EnvConfig;
+import org.example.conversation.ConversationHistory;
 
 import java.io.IOException;
 import java.net.URI;
@@ -35,6 +36,39 @@ public class LlmClient {
         String requestBody = buildGenerateContentRequestBody(prompt);
         String rawResponse = sendGenerateContentRequest(requestBody);
         return extractTextFromResponse(rawResponse);
+    }
+
+    public String getResponseFromGemini(String prompt, ConversationHistory history)
+            throws IOException, InterruptedException {
+
+        String finalPrompt = buildPromptWithHistory(prompt, history);
+        String requestBody = buildGenerateContentRequestBody(finalPrompt);
+        String rawResponse = sendGenerateContentRequest(requestBody);
+        return extractTextFromResponse(rawResponse);
+    }
+
+    private String buildPromptWithHistory(String prompt, ConversationHistory history) {
+        if (history == null || history.isEmpty()) {
+            return prompt;
+        }
+
+        String historyText = history.toPromptStringWithoutLast();
+
+        if (historyText == null || historyText.isBlank()) {
+            return prompt;
+        }
+
+        return """
+                CONVERSATION HISTORY
+                \"""
+                %s
+                \"""
+
+                CURRENT PROMPT
+                \"""
+                %s
+                \"""
+                """.formatted(historyText, prompt);
     }
 
     private String buildGenerateContentRequestBody(String prompt) throws IOException {

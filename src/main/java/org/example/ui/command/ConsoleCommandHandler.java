@@ -4,5 +4,5 @@ import org.example.ui.command.context.ConsoleCommandContext;
 
 public interface ConsoleCommandHandler {
     String getName();
-    void execute(ConsoleCommandContext context) throws Exception;
+    String execute(ConsoleCommandContext context) throws Exception;
 }

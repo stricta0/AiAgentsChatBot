@@ -1,9 +1,15 @@
 {
-  "welcomeMessage": "AI Support Chat started. To quit, type 'exit'. Try: help for more commands",
-  "helpMessage": "Type your message and press Enter. To quit, type 'exit'.",
+  "welcomeMessage": "AI Support Chat started. Type 'help' to see commands or 'exit' to quit",
+  "helpMessage": "Type your message and press Enter.",
   "prompt": "> ",
   "emptyMessageWarning": "Please enter a message.",
   "goodbyeMessage": "Goodbye.",
-  "routingPlanHeader": "=== ROUTING RESULT ===",
-  "errorPrefix": "An error occurred: "
+  "routingPlanHeader": "=== ROUTING PLAN ===",
+  "resolvedRoutingPlanHeader": "=== RESOLVED ROUTING PLAN ===",
+  "unknownPlanDetectedMessage": "Your message could not be fully routed to specialist agents.",
+  "unknownPlanOptionsMessage": "You can abort and try again, or resolve each NONE step by explaining what you meant more precisely or by saying that a step should be treated as GENERAL.",
+  "unknownPlanPrompt": "Please describe how the NONE steps should be resolved:",
+  "errorPrefix": "An error occurred: ",
+
+  "newPromptMessage": "===NEW PROMPT==="
 }

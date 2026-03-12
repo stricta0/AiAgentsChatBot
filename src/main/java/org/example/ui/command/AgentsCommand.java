@@ -14,41 +14,42 @@ public class AgentsCommand implements ConsoleCommandHandler {
     }
 
     @Override
-    public void execute(ConsoleCommandContext context) {
+    public String execute(ConsoleCommandContext context) {
         AgentCatalog agentCatalog = AgentCatalog.load();
         List<AgentDefinition> agents = agentCatalog.getAgents();
 
-        System.out.println();
-        System.out.println("=== AVAILABLE AGENTS ===");
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== AVAILABLE AGENTS ===\n");
 
         if (agents == null || agents.isEmpty()) {
-            System.out.println("No agents found.");
-            System.out.println();
-            return;
+            sb.append("No agents found.");
+            return sb.toString();
         }
 
         for (AgentDefinition agent : agents) {
-            System.out.println("- " + agent.getName());
-            System.out.println("  Description: " + agent.getDescription());
+            sb.append("- ").append(agent.getName()).append("\n");
+            sb.append("  Description: ").append(agent.getDescription()).append("\n");
 
-            printList("  Can handle:", agent.getCanHandle());
-            printList("  Cannot handle:", agent.getCannotHandle());
-            printList("  Examples:", agent.getExamples());
+            appendList(sb, "  Can handle:", agent.getCanHandle());
+            appendList(sb, "  Cannot handle:", agent.getCannotHandle());
+            appendList(sb, "  Examples:", agent.getExamples());
 
-            System.out.println();
+            sb.append("\n");
         }
+
+        return sb.toString().trim();
     }
 
-    private void printList(String header, List<String> items) {
-        System.out.println(header);
+    private void appendList(StringBuilder sb, String header, List<String> items) {
+        sb.append(header).append("\n");
 
         if (items == null || items.isEmpty()) {
-            System.out.println("    - none");
+            sb.append("    - none\n");
             return;
         }
 
         for (String item : items) {
-            System.out.println("    - " + item);
+            sb.append("    - ").append(item).append("\n");
         }
     }
 }
