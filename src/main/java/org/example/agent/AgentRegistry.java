@@ -9,9 +9,9 @@ public class AgentRegistry {
     private final Map<String, SupportAgent> agentsByName;
     private final AgentCatalog agentCatalog;
 
-    public AgentRegistry(List<SupportAgent> agents) {
+    public AgentRegistry(List<SupportAgent> agents, AgentCatalog agentCatalog) {
         this.agentsByName = new HashMap<>();
-        this.agentCatalog = AgentCatalog.load();
+        this.agentCatalog = agentCatalog;
 
         for (SupportAgent agent : agents) {
             String agentName = normalize(agent.getName());

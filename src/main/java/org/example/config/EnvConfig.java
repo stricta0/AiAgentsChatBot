@@ -2,7 +2,6 @@ package org.example.config;
 
 import io.github.cdimascio.dotenv.Dotenv;
 
-
 public class EnvConfig {
 
     private static final Dotenv dotenv = Dotenv.configure()
@@ -19,5 +18,21 @@ public class EnvConfig {
 
     public static String getGeminiApiUrl() {
         return dotenv.get("GEMINI_API_URL");
+    }
+
+    public static String getPostgresImage() {
+        return dotenv.get("POSTGRES_IMAGE");
+    }
+
+    public static String getPostgresDb() {
+        return dotenv.get("POSTGRES_DB");
+    }
+
+    public static String getPostgresUser() {
+        return dotenv.get("POSTGRES_USER");
+    }
+
+    public static String getPostgresPassword() {
+        return dotenv.get("POSTGRES_PASSWORD");
     }
 }

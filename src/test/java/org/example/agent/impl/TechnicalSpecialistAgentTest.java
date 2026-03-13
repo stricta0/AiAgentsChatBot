@@ -1,8 +1,13 @@
 package org.example.agent.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.agent.AgentExecutionResult;
 import org.example.agent.AgentExecutionStatus;
 import org.example.agent.PromptExecutionAbortException;
+import org.example.agent.prompt.TechnicalSpecialistPromptDefinition;
+import org.example.agent.prompt.TechnicalSpecialistPromptFactory;
+import org.example.config.JsonResourceLoader;
+import org.example.config.ResourcePaths;
 import org.example.conversation.ConversationHistory;
 import org.example.llm.LlmClient;
 import org.example.router.model.PlanStep;
@@ -29,9 +34,21 @@ class TechnicalSpecialistAgentTest {
         llmClient = mock(LlmClient.class);
         technicalDocumentationService = mock(TechnicalDocumentationService.class);
 
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonResourceLoader jsonResourceLoader = new JsonResourceLoader(objectMapper);
+
+        TechnicalSpecialistPromptDefinition technicalPromptDefinition =
+                jsonResourceLoader.load(
+                        ResourcePaths.TECHNICAL_SPECIALIST_PROMPT,
+                        TechnicalSpecialistPromptDefinition.class
+                );
+
         technicalSpecialistAgent = new TechnicalSpecialistAgent(
                 llmClient,
-                technicalDocumentationService
+                technicalDocumentationService,
+                objectMapper,
+                technicalPromptDefinition,
+                new TechnicalSpecialistPromptFactory()
         );
     }
 

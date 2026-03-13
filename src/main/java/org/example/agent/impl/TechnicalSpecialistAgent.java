@@ -26,13 +26,16 @@ public class TechnicalSpecialistAgent implements SupportAgent {
 
     public TechnicalSpecialistAgent(
             LlmClient llmClient,
-            TechnicalDocumentationService technicalDocumentationService
+            TechnicalDocumentationService technicalDocumentationService,
+            ObjectMapper objectMapper,
+            TechnicalSpecialistPromptDefinition promptDefinition,
+            TechnicalSpecialistPromptFactory promptFactory
     ) {
         this.llmClient = llmClient;
         this.technicalDocumentationService = technicalDocumentationService;
-        this.objectMapper = new ObjectMapper();
-        this.promptDefinition = TechnicalSpecialistPromptDefinition.load();
-        this.promptFactory = new TechnicalSpecialistPromptFactory();
+        this.objectMapper = objectMapper;
+        this.promptDefinition = promptDefinition;
+        this.promptFactory = promptFactory;
     }
 
     @Override

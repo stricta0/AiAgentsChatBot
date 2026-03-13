@@ -9,10 +9,11 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.util.Objects;
+import org.example.config.ResourcePaths;
 
 public class DatabaseInitializer {
 
-    private static final String INIT_SQL_RESOURCE_PATH = "db/init.sql";
+    private static final String INIT_SQL_RESOURCE_PATH = ResourcePaths.DB_INIT_SQL;
 
     private final String jdbcUrl;
     private final String username;

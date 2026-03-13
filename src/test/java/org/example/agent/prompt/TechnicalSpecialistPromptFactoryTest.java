@@ -1,5 +1,8 @@
 package org.example.agent.prompt;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.config.JsonResourceLoader;
+import org.example.config.ResourcePaths;
 import org.example.conversation.ConversationHistory;
 import org.example.router.model.PlanStep;
 import org.example.technicaldocs.model.TechnicalDocumentChunk;
@@ -15,7 +18,15 @@ class TechnicalSpecialistPromptFactoryTest {
     @Test
     void shouldBuildPromptContainingStepHistoryAndRetrievedDocs() {
         TechnicalSpecialistPromptFactory factory = new TechnicalSpecialistPromptFactory();
-        TechnicalSpecialistPromptDefinition definition = TechnicalSpecialistPromptDefinition.load();
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonResourceLoader jsonResourceLoader = new JsonResourceLoader(objectMapper);
+
+        TechnicalSpecialistPromptDefinition definition =
+                jsonResourceLoader.load(
+                        ResourcePaths.TECHNICAL_SPECIALIST_PROMPT,
+                        TechnicalSpecialistPromptDefinition.class
+                );
 
         PlanStep step = new PlanStep();
         step.setAgent("TECHNICAL_SPECIALIST");
@@ -51,7 +62,15 @@ class TechnicalSpecialistPromptFactoryTest {
     @Test
     void shouldBuildPromptWithNoDocumentationMessageWhenResultsAreEmpty() {
         TechnicalSpecialistPromptFactory factory = new TechnicalSpecialistPromptFactory();
-        TechnicalSpecialistPromptDefinition definition = TechnicalSpecialistPromptDefinition.load();
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonResourceLoader jsonResourceLoader = new JsonResourceLoader(objectMapper);
+
+        TechnicalSpecialistPromptDefinition definition =
+                jsonResourceLoader.load(
+                        ResourcePaths.TECHNICAL_SPECIALIST_PROMPT,
+                        TechnicalSpecialistPromptDefinition.class
+                );
 
         PlanStep step = new PlanStep();
         step.setAgent("TECHNICAL_SPECIALIST");

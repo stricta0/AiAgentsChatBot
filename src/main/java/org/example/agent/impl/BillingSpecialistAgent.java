@@ -25,14 +25,22 @@ public class BillingSpecialistAgent implements SupportAgent {
     private final BillingSpecialistErrorPromptDefinition errorPromptDefinition;
     private final BillingSpecialistErrorPromptFactory errorPromptFactory;
 
-    public BillingSpecialistAgent(LlmClient llmClient, BillingService billingService) {
+    public BillingSpecialistAgent(
+            LlmClient llmClient,
+            BillingService billingService,
+            ObjectMapper objectMapper,
+            BillingSpecialistPromptDefinition promptDefinition,
+            BillingSpecialistPromptFactory promptFactory,
+            BillingSpecialistErrorPromptDefinition errorPromptDefinition,
+            BillingSpecialistErrorPromptFactory errorPromptFactory
+    ) {
         this.llmClient = llmClient;
         this.billingService = billingService;
-        this.objectMapper = new ObjectMapper();
-        this.promptDefinition = BillingSpecialistPromptDefinition.load();
-        this.promptFactory = new BillingSpecialistPromptFactory();
-        this.errorPromptDefinition = BillingSpecialistErrorPromptDefinition.load();
-        this.errorPromptFactory = new BillingSpecialistErrorPromptFactory();
+        this.objectMapper = objectMapper;
+        this.promptDefinition = promptDefinition;
+        this.promptFactory = promptFactory;
+        this.errorPromptDefinition = errorPromptDefinition;
+        this.errorPromptFactory = errorPromptFactory;
     }
 
     @Override

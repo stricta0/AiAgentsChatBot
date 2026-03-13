@@ -1,219 +1,228 @@
-# Geting startet
+# AI Support Agents Router
 
-1. Add your open AI API key as env variable
-link: https://platform.openai.com/api-keys
+## General Overview
 
-    copy <YOUR KEY> and add it to the envirament 
+This project is a **Java-based conversational multi-agent support system** that routes and executes user requests inside a single conversation.
+
+The system combines:
+
+- an **LLM-powered router** that decides which agent should handle a request,
+- a **Technical Specialist agent** grounded in local technical documentation,
+- a **Billing Specialist agent** backed by a PostgreSQL database,
+- a **General agent** for explicitly allowed non-specialist conversation paths,
+- a multi-turn conversation flow with clarification and fallback handling.
+
+The goal of the project is to demonstrate how to build a **tool-augmented support assistant** without using external agent frameworks such as LangChain, while keeping orchestration logic fully controlled in Java.
+
+At runtime, the application:
+
+1. accepts a user message in the console,
+2. asks the router LLM to generate a structured routing plan,
+3. resolves ambiguous `NONE` steps if needed,
+4. executes the plan using the most appropriate specialist agent,
+5. continues the same conversation across multiple turns.
+
+---
+
+## Getting Started
+
+### 1. Clone the repository
+
 ```bash
-export GEMINI_API_KEY="<YOUR KEY>"
+git clone <YOUR_REPOSITORY_URL>
+cd AiAgents
 ```
 
-You can check it with 
+### 2. Create a `.env` file
+
+The application uses a `.env` file for configuration.
+
+Copy the example file:
+
 ```bash
-echo $GEMINI_API_KEY
+cp .env.example .env
 ```
 
-wybrano model:
-gemini-2.5-flash
+Then fill in your Gemini API key and keep the other values as needed.
 
-gemini-2.5-flash-lite - wieksze darmowe limity
+Example:
 
+```env
+GEMINI_API_KEY=your_api_key
+GEMINI_MODEL=models/gemini-2.5-flash
+GEMINI_API_URL=https://generativelanguage.googleapis.com/v1beta
 
-# TODO: setup Dumy acc with api key
-# TODO: dodać może ten key jakoś do .env czy czegoś w tym stylu idk
-# TODO: zmienić router_prompt.json tak żeby również miał pole outputFormat tak jak uknown_resoultion_prompt
-# TODO: jest w wielu miejscach hardocowane sciezki to resoursow - fajnie by to bylo przeniesc do jakiegos .env czy cos w tym stylu
-# TODO: routing_plan zdefiniowany osobno w router_prompt.json i unknow_resolution_prompt.json
-# TODO: hardcodowane niektóre nazwy np. w UnknownResolutionService ABORT I RESOLVED 
-# TODO: niektóre funkcje się powtarzają np. stripCodeFences w Router i UnknownResolution Service
-# TODO: pousuwać .load() z polowy tych serwisów i zamienic na przekazywanie przez konstruktor
-# TODO: wywalić hardcoded elementy z database.PostgresContainerManager do .env
-# TODO: przeniesc przykladowe dokumenty do jakiegos folderu z test (chodzi o dokuemnty z resources/docs - tak zeby testy wykonywaly sie na tych dokumentach ale zeby po zmienie dokumentow testy sie nie rozjechaly)
+POSTGRES_IMAGE=postgres:16
+POSTGRES_DB=aiagents
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+```
 
-## Technical Documentation Chunking
+### 3. Build the project
 
-The `TECHNICAL_SPECIALIST` agent uses a deterministic document chunking pipeline before retrieval.
+```bash
+mvn compile
+```
 
-The goal of this process is to split local technical documentation into semantically meaningful chunks that can later be embedded, searched, and passed to the LLM as grounded context.
+### 4. Run tests
 
-### Supported document types
+```bash
+mvn test
+```
 
-The current implementation supports:
+### 5. Start the application
 
-- `.md`
-- `.txt`
-
-Any other file type found in the configured documentation directory is ignored.  
-A warning is printed during loading to clearly indicate that the file is unsupported and will not be used by the agent.
-
----
-
-### Configuration
-
-Chunking behavior is controlled by `docs/docs_config.json`.
-
-Current configuration options include:
-
-- `documentsPath` — path to the local documentation folder inside resources
-- `maxChunkLengthChars` — maximum allowed chunk size in characters
-- `fallbackOverlapChars` — overlap size used when fallback chunk splitting is required
-- `supportedExtensions` — list of supported file extensions
-
-This keeps chunking rules configurable and avoids hardcoding these values in application code.
+```bash
+mvn exec:java -Dexec.mainClass="org.example.Main"
+```
 
 ---
 
-### Markdown chunking strategy
+## Configuration
 
-For `.md` documents, chunking is performed hierarchically based on Markdown headings.
+The application is configured through both:
 
-The algorithm works as follows:
+1. **environment variables** (`.env`)
+2. **JSON resource files** in `src/main/resources`
 
-1. Split the document by top-level `#` headings
-2. If a resulting chunk is still too large, split it by `##`
-3. If a resulting chunk is still too large, split it by `###`
-4. Continue this process down to `######`
-5. If the section is still too large even after exhausting heading levels, use fallback splitting:
-   - first by paragraphs / blank lines
-   - then by sentences if needed
-   - finally by character-based fallback if a single sentence is still too large
+### Environment configuration
 
-This approach preserves the semantic structure of Markdown documentation for as long as possible before falling back to more technical splitting rules.
+Runtime secrets and container/database settings are stored in `.env` and loaded through:
 
----
+```text
+src/main/java/org/example/config/EnvConfig.java
+```
 
-### Plain text chunking strategy
+### JSON configuration files
 
-For `.txt` documents, there is no heading hierarchy, so chunking uses fallback rules directly:
+The application behavior is also driven by JSON files stored in resources:
 
-1. Split by paragraphs / blank lines
-2. If a chunk is still too large, split by sentences
-3. If a single sentence is still too large, use a character-based fallback split
+- `src/main/resources/router/agents.json`
+- `src/main/resources/router/router_prompt.json`
+- `src/main/resources/router/unknown_resolution_prompt.json`
+- `src/main/resources/agent/billing_specialist_prompt.json`
+- `src/main/resources/agent/billing_specialist_error_prompt.json`
+- `src/main/resources/agent/technical_specialist_prompt.json`
+- `src/main/resources/ui/console_commands.json`
+- `src/main/resources/ui/console_messages.json`
+- `src/main/resources/docs/docs_config.json`
 
----
-
-### Fallback overlap
-
-When chunking falls back to paragraph-based, sentence-based, or character-based splitting, the algorithm applies a small overlap between adjacent chunks.
-
-This overlap helps preserve context when important information lies near chunk boundaries.
-
-The overlap size is configurable through `fallbackOverlapChars`.
+This makes the system easy to adjust without modifying Java logic.
 
 ---
 
-### Chunk metadata
+## Agents
 
-Each generated chunk contains metadata that can later be used during retrieval and answer generation.
+The system currently supports three runtime agents:
 
-Current chunk metadata includes:
+- `TECHNICAL_SPECIALIST`
+- `BILLING_SPECIALIST`
+- `GENERAL`
 
-- `documentName`
-- `documentType`
-- `headingPath`
-- `chunkIndex`
-- `content`
+### TECHNICAL_SPECIALIST
 
-For Markdown documents, `headingPath` represents the section hierarchy that led to the chunk.  
-For plain text documents, `headingPath` defaults to the document name.
+`TECHNICAL_SPECIALIST` answers technical questions using **local technical documentation** stored in `src/main/resources/docs/sources`.
 
-This metadata helps:
+It does not rely on general model knowledge alone. Instead, it uses a deterministic retrieval pipeline:
 
-- preserve document context
-- explain where the information came from
-- make retrieved results easier to interpret in prompts and debugging
+1. load local documents,
+2. split them into chunks,
+3. compute embeddings,
+4. retrieve the most relevant chunks for a user query,
+5. build a grounded prompt using only retrieved excerpts.
+
+This agent is intended for questions such as:
+
+- API usage questions
+- integration troubleshooting
+- configuration issues
+- deployment questions
+- documented technical errors
+
+Example requests:
+
+- `Why do I get a 401 error?`
+- `How do I configure webhooks?`
+- `What environment variables are required for deployment?`
+- `How do I authenticate API requests?`
+
+Behavior rules:
+
+- answers should be grounded in retrieved documentation,
+- if the docs do not cover the issue, the agent should say so,
+- if the question is too vague, the agent should ask for clarification,
+- the agent should not invent undocumented facts.
 
 ---
 
-### Why this design was chosen
+### BILLING_SPECIALIST
 
-This chunking strategy was designed to satisfy several requirements:
+`BILLING_SPECIALIST` handles billing-related requests using a PostgreSQL-backed billing module.
 
-- deterministic retrieval behavior
-- preservation of document structure
-- support for both Markdown and plain text documentation
-- configurable chunk size without hardcoded values
-- robust fallback behavior for unusually long sections
+It supports three main capabilities:
 
-In practice, this means the system prefers semantically meaningful chunks first, and only falls back to lower-level splitting when necessary.
-
-
-
-## Billing Specialist Agent
-
-`BILLING_SPECIALIST` is responsible for handling billing-related support requests that can be resolved using billing data stored in the SQL database.
-
-At the current stage, the agent supports three main capabilities:
-
-### 1. Check customer subscription plan
+#### 1. Check customer subscription plan
 
 The agent can:
 
-- identify which subscription plan the customer is currently on,
-- return the monthly price of that plan,
+- identify the customer’s current subscription plan,
+- return the monthly price,
 - confirm whether the subscription is active.
 
-If the user asks about their plan but does not provide an email address, the agent should first ask for the email.  
-Once the email is available, the agent should:
+Typical flow:
 
-1. find the customer by email,
-2. find the active subscription for that customer,
-3. return the plan name, monthly price, and subscription status.
+1. ask for email if missing,
+2. find the customer by email,
+3. find the active subscription,
+4. return plan details.
 
-Example user requests:
+Example requests:
 
 - `What plan am I on?`
 - `Check my subscription`
 - `What is my current plan? My email is john.doe@example.com`
 
----
-
-### 2. Explain refund policy
+#### 2. Explain refund policy
 
 The agent can:
 
 - explain whether a refund is available,
-- describe the refund conditions,
+- describe refund conditions,
 - provide the estimated refund processing time.
 
-If the user asks about a refund but does not provide an email address, the agent should first ask for the email.  
-Once the email is available, the agent should:
+Typical flow:
 
-1. find the customer by email,
-2. find the active subscription for that customer,
-3. determine the customer’s current plan,
-4. find the refund policy for that plan,
-5. return refund availability, refund window, processing time, and policy description.
+1. ask for email if missing,
+2. find the customer,
+3. find the active subscription,
+4. determine the current plan,
+5. retrieve the refund policy,
+6. return refund details.
 
-Example user requests:
+Example requests:
 
 - `Can I get a refund?`
 - `What is the refund policy for my subscription?`
 - `Is refund available for my account? My email is alice.smith@example.com`
 
----
-
-### 3. Open refund support case
+#### 3. Open refund support case
 
 The agent can:
 
 - create a refund support case,
 - generate and return a case number,
-- confirm that the case has been saved,
-- ask for a short problem description if needed.
+- confirm that the case was saved,
+- ask for a short refund description if needed.
 
-When opening a refund case, the agent should collect only the data that is actually required to create the record.  
-The agent should determine which fields can be filled automatically by the system and ask the user only for the missing business information.
+Typical flow:
 
-For the current billing schema, the agent should:
+1. ask for email if missing,
+2. find the customer,
+3. ask for refund description if missing,
+4. create support case,
+5. return confirmation and case number.
 
-1. ask for the user’s email if it is not already known,
-2. find the customer by email,
-3. ask for a short refund-related description if it is missing,
-4. create the refund support case,
-5. return the generated case number and confirmation.
-
-Example user requests:
+Example requests:
 
 - `Open a refund case for me`
 - `I want to request a refund`
@@ -221,362 +230,459 @@ Example user requests:
 
 ---
 
-### Notes
+### GENERAL
 
-The `BILLING_SPECIALIST` agent is expected to handle the full billing flow for its assigned task, not just a single micro-step.  
-This means that once a billing-related request is routed to this agent, it should independently:
+`GENERAL` is a fallback conversational agent used only when a request is explicitly resolved into a general, non-specialist path.
 
-- identify the exact billing intent,
-- collect missing required data from the user,
-- use the SQL-backed billing module,
-- return the final billing response.
+It is not intended to replace the specialist agents.  
+Its purpose is to handle situations where:
 
+- the user explicitly agrees to a general response,
+- the request does not require billing tools,
+- the request does not require technical documentation lookup.
 
-# AI Support Agents Router
+Example requests:
 
-## Overview
-
-This project implements a **conversational support AI routing system** in Java.  
-The system analyzes a user's message and produces a structured **routing plan** that determines which specialized support agent should handle each task.
-
-The router is powered by a modern LLM (Google Gemini) but all orchestration logic is implemented manually in Java without using agent frameworks such as LangChain.
-
-The project demonstrates how to build a **multi-agent conversational architecture** where:
-
-- an AI model analyzes the user request,
-- the system produces a structured execution plan,
-- different agents can later execute the steps of that plan.
-
-At the current stage, the project focuses on **the routing layer**, which is the most important architectural component of a multi-agent system.
+- `hello`
+- `Can you just answer this generally?`
+- `What can you help me with?`
 
 ---
 
-# Key Features
+## Commands
 
-- Java-based implementation
-- Integration with a modern LLM (Gemini API)
-- Configurable agent definitions via JSON
-- Configurable router prompts via JSON
-- Structured routing output (JSON → Java objects)
-- Support for multi-step routing plans
-- Modular architecture ready for agent execution layer
-- No external agent frameworks
+The console application supports the following commands:
 
----
+### `help`
+Shows all available commands.
 
-# Architecture Overview
+### `agents`
+Prints all configured agents and their capabilities.
 
-The system is structured around three main layers:
+### `history`
+Shows the full conversation history collected during the current session.
 
-1. LLM communication layer
-2. Routing layer
-3. Configuration layer
-
-High-level flow:
-
-User message  
-│  
-▼  
-RouterService  
-│  
-▼  
-RouterPromptFactory  
-│  
-▼  
-Gemini LLM  
-│  
-▼  
-Structured JSON RoutingPlan  
-│  
-▼  
-Java objects (RoutingPlan / PlanStep)
-
-The router does not execute tasks itself.  
-Instead, it produces a **plan describing how the request should be handled**.
+### `exit`
+Exits the application.
 
 ---
 
-# Project Structure
+## Architecture
 
-src  
-└── main  
-&nbsp;&nbsp;&nbsp;&nbsp;├── java  
-&nbsp;&nbsp;&nbsp;&nbsp;│   └── org/example  
-&nbsp;&nbsp;&nbsp;&nbsp;│       ├── config  
-&nbsp;&nbsp;&nbsp;&nbsp;│       │   └── EnvConfig.java  
-&nbsp;&nbsp;&nbsp;&nbsp;│       │  
-&nbsp;&nbsp;&nbsp;&nbsp;│       ├── llm  
-&nbsp;&nbsp;&nbsp;&nbsp;│       │   └── LlmClient.java  
-&nbsp;&nbsp;&nbsp;&nbsp;│       │  
-&nbsp;&nbsp;&nbsp;&nbsp;│       ├── router  
-&nbsp;&nbsp;&nbsp;&nbsp;│       │   ├── RouterService.java  
-&nbsp;&nbsp;&nbsp;&nbsp;│       │   ├── RouterPromptFactory.java  
-&nbsp;&nbsp;&nbsp;&nbsp;│       │   │  
-&nbsp;&nbsp;&nbsp;&nbsp;│       │   └── model  
-&nbsp;&nbsp;&nbsp;&nbsp;│       │       ├── AgentCatalog.java  
-&nbsp;&nbsp;&nbsp;&nbsp;│       │       ├── AgentDefinition.java  
-&nbsp;&nbsp;&nbsp;&nbsp;│       │       ├── PlanStep.java  
-&nbsp;&nbsp;&nbsp;&nbsp;│       │       ├── RouterPromptDefinition.java  
-&nbsp;&nbsp;&nbsp;&nbsp;│       │       └── RoutingPlan.java  
-&nbsp;&nbsp;&nbsp;&nbsp;│       │  
-&nbsp;&nbsp;&nbsp;&nbsp;│       └── Main.java  
-&nbsp;&nbsp;&nbsp;&nbsp;│  
-&nbsp;&nbsp;&nbsp;&nbsp;└── resources  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── router  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── agents.json  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── router_prompt.json
+The system is built as a **multi-step conversational orchestration pipeline**.
 
----
+### High-level flow
 
-# Configuration Files
+```text
+User message
+   ↓
+RouterService
+   ↓
+RoutingPlan
+   ↓
+UnknownResolutionService (if any NONE steps exist)
+   ↓
+PlanStepExecutor
+   ↓
+Appropriate runtime agent
+   ↓
+Final response / clarification request / abort
+```
 
-Two JSON configuration files define the system behavior.
+### Core architecture ideas
 
-## agents.json
-
-Defines the available agents and their capabilities.
-
-Example:
-
-{
-"agents": [
-{
-"name": "TECHNICAL_SPECIALIST",
-"description": "Handles technical questions grounded in local technical documentation.",
-"canHandle": [
-"API usage questions",
-"integration troubleshooting",
-"configuration issues"
-],
-"cannotHandle": [
-"refunds",
-"pricing"
-],
-"examples": [
-"Why do I get a 401 error?"
-]
-}
-]
-}
-
-Adding a new agent requires **only editing this file**.
+- the router does not answer the user directly,
+- it produces a structured `RoutingPlan`,
+- each `PlanStep` is executed by a registered runtime agent,
+- the same `ConversationHistory` is preserved across turns,
+- ambiguous steps can be resolved through `UnknownResolutionService`,
+- specialist agents handle their full domain flow rather than a single micro-step.
 
 ---
 
-## router_prompt.json
+## Project Structure
 
-Defines the router instructions used by the LLM.
+```text
+src
+├── main
+│   ├── java/org/example
+│   │   ├── agent
+│   │   │   ├── impl
+│   │   │   ├── prompt
+│   │   │   └── ...
+│   │   ├── billing
+│   │   ├── config
+│   │   ├── conversation
+│   │   ├── database
+│   │   ├── llm
+│   │   ├── router
+│   │   ├── technicaldocs
+│   │   ├── ui
+│   │   └── Main.java
+│   └── resources
+│       ├── agent
+│       ├── db
+│       ├── docs
+│       ├── router
+│       └── ui
+└── test
+    ├── java/org/example
+    │   ├── agent
+    │   ├── billing
+    │   └── technicaldocs
+    └── resources/docs
+```
 
-Example:
+### Important directories
 
-{
-"taskLines": [
-"You are an AI routing planner for a support system.",
-"Your task is to analyze the user's message and return a routing plan in JSON.",
-"Do not answer the user directly.",
-"Your job is to create one or more execution steps for specialist agents.",
-"Return only valid JSON."
-],
-"rules": [
-"Choose only agent names that exist in AVAILABLE AGENTS.",
-"If the request does not clearly match a specialist, choose NONE.",
-"Never invent new agent names."
-]
-}
-
-This allows **prompt changes without modifying Java code**.
-
----
-
-# Routing Output Format
-
-The router produces a structured JSON plan:
-
-{
-"whole_original_message": "string",
-"routing_notes": "string",
-"steps": [
-{
-"agent": "string",
-"task": "string",
-"original_message_section": "string",
-"additional_context": "string",
-"confidence": 0.0
-}
-]
-}
-
-Each step represents one task for a specific agent.
+- `agent/` – agent contracts, execution logic, runtime implementations
+- `billing/` – billing domain services, repositories, models
+- `router/` – router prompt building, routing plan parsing, unknown resolution flow
+- `technicaldocs/` – document loading, chunking, embeddings, retrieval
+- `ui/` – console application and command system
+- `resources/` – JSON configs, SQL initialization, technical documentation sources
+- `test/resources/docs/` – dedicated technical documentation fixtures for tests
 
 ---
 
-# Core Components
+## Core Components
 
-## LlmClient
+### `Main`
+Application bootstrap / composition root.  
+Creates all services, loads JSON config, initializes database and technical documentation pipeline, then starts the console chat.
 
-Handles communication with the Gemini API.
+### `LlmClient`
+Encapsulates communication with the Gemini API.
 
 Responsibilities:
+- build request payloads,
+- call Gemini generate endpoint,
+- parse model responses.
 
-- sending prompts
-- handling HTTP requests
-- parsing API responses
-- extracting the generated text
+### `RouterService`
+Builds a router prompt and asks the LLM to generate a `RoutingPlan`.
 
----
+### `UnknownResolutionService`
+Handles routing plans that contain `NONE` steps.  
+It lets the system resolve ambiguity before executing the plan.
 
-## RouterPromptFactory
+### `PlanStepExecutor`
+Executes a single `PlanStep` using the correct runtime agent from `AgentRegistry`.
 
-Constructs the router prompt dynamically using:
+### `AgentRegistry`
+Maps configured agent names to actual runtime agent implementations and validates consistency between config and code.
 
-- router prompt configuration
-- agent definitions
-- user message
+### `BillingService`
+Application-level billing service used by `BILLING_SPECIALIST`.
 
-This ensures the prompt always reflects the current configuration.
+### `TechnicalDocumentationService`
+Preloads technical documents, embeds them once at startup, and retrieves relevant chunks for technical questions.
 
----
+### `TechnicalDocumentLoader`
+Loads supported technical documentation files from resources.
 
-## RouterService
+### `TechnicalDocumentChunker`
+Splits `.md` and `.txt` documentation into structured chunks.
 
-Main orchestration component.
+### `TechnicalChunkEmbeddingService`
+Computes embeddings for generated document chunks.
 
-Responsibilities:
+### `TechnicalChunkRetriever`
+Finds top matching chunks using cosine similarity.
 
-1. Load agent catalog
-2. Load router prompt configuration
-3. Generate the router prompt
-4. Send the prompt to the LLM
-5. Parse the JSON response
-6. Convert it to a RoutingPlan object
-
----
-
-## AgentCatalog
-
-Loads agent definitions from `agents.json`.
-
-This enables adding or modifying agents without code changes.
+### `ConsoleChatApplication`
+Runs the interactive console loop, handles commands, routes messages, executes plans, and preserves conversation history.
 
 ---
 
-## RoutingPlan / PlanStep
+## Technical Documentation Retrieval
 
-Java representations of the structured routing output returned by the LLM.
+The `TECHNICAL_SPECIALIST` agent uses a deterministic retrieval pipeline based on local documentation.
 
-They allow the routing result to be processed programmatically.
+### Supported document types
+
+- `.md`
+- `.txt`
+
+Unsupported files are skipped.
+
+### Chunking strategy
+
+For Markdown documents:
+- split by headings (`#`, `##`, `###`, etc.),
+- if needed, fall back to paragraph splitting,
+- then sentence splitting,
+- finally character-based fallback if required.
+
+For plain text documents:
+- split by paragraphs,
+- then sentences,
+- then character fallback if needed.
+
+### Chunk metadata
+
+Each chunk contains metadata such as:
+
+- `documentName`
+- `documentType`
+- `headingPath`
+- `chunkIndex`
+- `content`
+
+This metadata helps preserve context during retrieval and prompting.
+
+### Why this matters
+
+This design allows the technical agent to:
+- stay grounded in actual docs,
+- retrieve only the most relevant excerpts,
+- avoid hallucinating unsupported technical answers,
+- remain deterministic and testable.
 
 ---
 
-# Example Usage
+## Database
 
-Example test cases in `Main.java`:
+The application uses a **PostgreSQL database** initialized automatically at startup using:
 
-RoutingPlan plan1 = routerService.route("I want a refund for my Pro plan");
+```text
+src/main/resources/db/init.sql
+```
 
-RoutingPlan plan2 = routerService.route(
-"Why do I get a 401 error when calling the API? If the reason is not having a Pro plan, get a Pro plan"
-);
+The schema contains the following tables:
 
-RoutingPlan plan3 = routerService.route(
-"What is your favorite programming language?"
-);
+### `customers`
+Stores basic customer data.
 
-Example output:
+Fields:
+- `id`
+- `email`
+- `full_name`
 
-RoutingPlan{
-wholeOriginalMessage='I want a refund for my Pro plan',
-routingNotes='Single billing request',
-steps=[
-PlanStep{agent='BILLING_SPECIALIST', ...}
-]
-}
+### `subscriptions`
+Stores customer subscriptions.
+
+Fields:
+- `id`
+- `customer_id`
+- `plan_name`
+- `monthly_price`
+- `status`
+- `started_at`
+
+### `support_cases`
+Stores support/refund cases created by the billing flow.
+
+Fields:
+- `id`
+- `case_number`
+- `customer_id`
+- `case_type`
+- `status`
+- `description`
+- `created_at`
+
+### `refund_policies`
+Defines refund rules for subscription plans.
+
+Fields:
+- `id`
+- `plan_name`
+- `refund_available`
+- `refund_window_days`
+- `processing_time_days`
+- `policy_description`
+
+### Seed data
+
+The `init.sql` script also contains example development/test data, including:
+
+- sample customers,
+- sample subscriptions,
+- sample refund policies.
+
+Example records:
+
+| Email | Plan |
+|------|------|
+| john.doe@example.com | PRO |
+| alice.smith@example.com | BASIC |
+
+This data is useful for local testing of the `BILLING_SPECIALIST` agent.  
+In a production environment, this seed section would typically be removed and replaced with proper migrations or real data sources.
 
 ---
 
-# Environment Variables
+## Example Usage
 
-The application requires the following variables:
+### Technical question
 
-GEMINI_API_KEY  
-GEMINI_MODEL  
-GEMINI_API_URL
+```text
+Why do I get a 401 error?
+```
+
+Expected behavior:
+- router selects `TECHNICAL_SPECIALIST`
+- technical docs are retrieved
+- answer is grounded in local documentation
+
+### Billing question
+
+```text
+What plan am I on?
+```
+
+Expected behavior:
+- router selects `BILLING_SPECIALIST`
+- agent asks for email if missing
+- after receiving email, subscription details are returned
+
+### Refund case creation
+
+```text
+Open a refund case for me
+```
+
+Expected behavior:
+- router selects `BILLING_SPECIALIST`
+- agent asks for missing email / refund description if needed
+- creates support case and returns case number
+
+### General request
+
+```text
+hello
+```
+
+Expected behavior:
+- may be handled through `GENERAL` when explicitly resolved to that path
+
+### Mixed multi-step request
+
+```text
+Why do I get a 401 error and check my subscription for john.doe@example.com
+```
+
+Expected behavior:
+- router can generate multiple steps
+- technical question handled by `TECHNICAL_SPECIALIST`
+- billing question handled by `BILLING_SPECIALIST`
+
+---
+
+## Environment Variables
+
+The application uses a `.env` file for configuration.  
+An example configuration should be stored in `.env.example`.
+
+Before running the application:
+
+```bash
+cp .env.example .env
+```
+
+### Required variables
+
+| Variable | Description |
+|--------|--------|
+| GEMINI_API_KEY | API key used to call the Gemini LLM |
+| GEMINI_MODEL | Gemini model name |
+| GEMINI_API_URL | Base URL for the Gemini API |
+| POSTGRES_IMAGE | Docker image used by Testcontainers |
+| POSTGRES_DB | Database name |
+| POSTGRES_USER | Database username |
+| POSTGRES_PASSWORD | Database password |
 
 Example `.env`:
 
-GEMINI_API_KEY=your_api_key  
-GEMINI_MODEL=models/gemini-2.5-flash  
+```env
+GEMINI_API_KEY=your_api_key
+GEMINI_MODEL=models/gemini-2.5-flash
 GEMINI_API_URL=https://generativelanguage.googleapis.com/v1beta
+
+POSTGRES_IMAGE=postgres:16
+POSTGRES_DB=aiagents
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+```
+
+The PostgreSQL database is started automatically using **Testcontainers** when the application launches.
 
 ---
 
-# Running the Project
+## Running the Project
 
 Compile:
 
+```bash
 mvn compile
+```
 
-Run:
+Run all tests:
 
+```bash
+mvn test
+```
+
+Start the console application:
+
+```bash
 mvn exec:java -Dexec.mainClass="org.example.Main"
+```
 
 ---
 
-# Design Decisions
+## Design Decisions
 
-## JSON-Based Configuration
+### JSON-based configuration
+Prompts, commands, console messages, agent definitions, and technical docs config are stored as JSON resources rather than hardcoded directly in Java.
 
-Both agents and router prompts are externalized into JSON files.
+### Constructor-based dependency wiring
+Runtime services and agents receive their dependencies explicitly instead of loading config internally.
 
-Benefits:
+### Structured router output
+The router returns JSON that is parsed into `RoutingPlan` / `PlanStep` objects.
 
-- easy modification
-- no recompilation required
-- clean separation between configuration and code
+### Deterministic technical retrieval
+Technical documentation retrieval is based on explicit chunking + embeddings + cosine similarity rather than opaque tool behavior.
 
----
-
-## Structured LLM Output
-
-The router forces the LLM to produce a **strict JSON schema**.  
-This allows the application to safely parse results into Java objects.
+### Test/resource separation
+Technical documentation fixtures used by tests are stored in `src/test/resources`, so runtime docs can evolve without breaking tests unexpectedly.
 
 ---
 
-## Prompt Composition
-
-The router prompt is dynamically constructed from:
-
-- task description
-- routing rules
-- available agents
-- user message
-
-This keeps prompts consistent with configuration.
-
----
-
-# Future Improvements
+## Future Improvements
 
 Possible next steps include:
 
-- implementing actual agent execution layer
-- adding conversation memory
-- improving routing validation
-- introducing tool-calling for agents
-- adding retrieval for technical documentation
-- supporting clarification flows when routing confidence is low
+- improving the technical agent prompt for better `NEEDS_USER_INPUT` behavior,
+- extracting a dedicated bootstrap/composition class from `Main`,
+- replacing simple SQL initialization with proper database migrations,
+- adding more realistic billing workflows,
+- improving conversation UX in the console interface,
+- adding richer observability/logging,
+- supporting more specialist agents,
+- extending technical retrieval with citation-style source references,
+- adding integration tests for full end-to-end conversation flows.
 
 ---
 
-# Summary
+## Summary
 
-This project demonstrates how to build the **routing layer of a multi-agent conversational AI system** in Java using a modern LLM while keeping the orchestration logic fully under developer control.
+This project demonstrates how to build a **multi-agent conversational support system in Java** with:
+
+- an LLM-based router,
+- a documentation-grounded technical support agent,
+- a database-backed billing support agent,
+- a general fallback agent,
+- explicit orchestration and execution logic,
+- deterministic retrieval over local technical docs,
+- multi-turn conversation support.
 
 The architecture emphasizes:
 
-- configurability
-- structured outputs
-- clear separation of responsibilities
-- extensibility for future agent implementations.
-
+- configurability,
+- structured outputs,
+- grounded specialist behavior,
+- separation of concerns,
+- extensibility for future agents and workflows.

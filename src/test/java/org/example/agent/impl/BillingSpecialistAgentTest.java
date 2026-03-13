@@ -1,9 +1,16 @@
 package org.example.agent.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.agent.AgentExecutionResult;
 import org.example.agent.AgentExecutionStatus;
 import org.example.agent.PromptExecutionAbortException;
+import org.example.agent.prompt.BillingSpecialistErrorPromptDefinition;
+import org.example.agent.prompt.BillingSpecialistErrorPromptFactory;
+import org.example.agent.prompt.BillingSpecialistPromptDefinition;
+import org.example.agent.prompt.BillingSpecialistPromptFactory;
 import org.example.billing.BillingService;
+import org.example.config.JsonResourceLoader;
+import org.example.config.ResourcePaths;
 import org.example.conversation.ConversationHistory;
 import org.example.llm.LlmClient;
 import org.example.router.model.PlanStep;
@@ -27,7 +34,30 @@ class BillingSpecialistAgentTest {
         llmClient = mock(LlmClient.class);
         billingService = mock(BillingService.class);
 
-        billingSpecialistAgent = new BillingSpecialistAgent(llmClient, billingService);
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonResourceLoader jsonResourceLoader = new JsonResourceLoader(objectMapper);
+
+        BillingSpecialistPromptDefinition billingPromptDefinition =
+                jsonResourceLoader.load(
+                        ResourcePaths.BILLING_SPECIALIST_PROMPT,
+                        BillingSpecialistPromptDefinition.class
+                );
+
+        BillingSpecialistErrorPromptDefinition billingErrorPromptDefinition =
+                jsonResourceLoader.load(
+                        ResourcePaths.BILLING_SPECIALIST_ERROR_PROMPT,
+                        BillingSpecialistErrorPromptDefinition.class
+                );
+
+        billingSpecialistAgent = new BillingSpecialistAgent(
+                llmClient,
+                billingService,
+                objectMapper,
+                billingPromptDefinition,
+                new BillingSpecialistPromptFactory(),
+                billingErrorPromptDefinition,
+                new BillingSpecialistErrorPromptFactory()
+        );
     }
 
     @Test

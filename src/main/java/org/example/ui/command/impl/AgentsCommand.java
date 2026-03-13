@@ -9,6 +9,12 @@ import java.util.List;
 
 public class AgentsCommand implements ConsoleCommandHandler {
 
+    private final AgentCatalog agentCatalog;
+
+    public AgentsCommand(AgentCatalog agentCatalog) {
+        this.agentCatalog = agentCatalog;
+    }
+
     @Override
     public String getName() {
         return "agents";
@@ -16,7 +22,6 @@ public class AgentsCommand implements ConsoleCommandHandler {
 
     @Override
     public String execute(ConsoleCommandContext context) {
-        AgentCatalog agentCatalog = AgentCatalog.load();
         List<AgentDefinition> agents = agentCatalog.getAgents();
 
         StringBuilder sb = new StringBuilder();

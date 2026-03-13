@@ -1,22 +1,36 @@
 package org.example;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.agent.AgentCatalog;
 import org.example.agent.AgentRegistry;
 import org.example.agent.PlanStepExecutor;
 import org.example.agent.impl.BillingSpecialistAgent;
 import org.example.agent.impl.GeneralAgent;
 import org.example.agent.impl.TechnicalSpecialistAgent;
+import org.example.agent.prompt.BillingSpecialistErrorPromptDefinition;
+import org.example.agent.prompt.BillingSpecialistErrorPromptFactory;
+import org.example.agent.prompt.BillingSpecialistPromptDefinition;
+import org.example.agent.prompt.BillingSpecialistPromptFactory;
+import org.example.agent.prompt.TechnicalSpecialistPromptDefinition;
+import org.example.agent.prompt.TechnicalSpecialistPromptFactory;
 import org.example.billing.BillingService;
 import org.example.billing.CustomerRepository;
 import org.example.billing.RefundPolicyRepository;
 import org.example.billing.SubscriptionRepository;
 import org.example.billing.SupportCaseRepository;
+import org.example.config.JsonResourceLoader;
+import org.example.config.ResourcePaths;
 import org.example.conversation.ConversationHistory;
 import org.example.database.DatabaseConnectionFactory;
 import org.example.database.DatabaseInitializer;
 import org.example.database.PostgresContainerManager;
 import org.example.llm.LlmClient;
+import org.example.router.RouterPromptFactory;
 import org.example.router.RouterService;
+import org.example.router.UnknownResolutionPromptFactory;
 import org.example.router.UnknownResolutionService;
+import org.example.router.model.RouterPromptDefinition;
+import org.example.router.model.UnknownResolutionPromptDefinition;
 import org.example.technicaldocs.CosineSimilarityCalculator;
 import org.example.technicaldocs.EmbeddingClient;
 import org.example.technicaldocs.TechnicalChunkEmbeddingService;
@@ -71,17 +85,82 @@ public class Main {
                     supportCaseRepository
             );
 
-            ConsoleMessages messages = ConsoleMessages.load();
-            ConsoleCommands commands = ConsoleCommands.load();
             ConversationHistory history = new ConversationHistory();
 
             try (Scanner scanner = new Scanner(System.in)) {
-                LlmClient llmClient = new LlmClient();
-                RouterService routerService = new RouterService(llmClient);
-                UnknownResolutionService unknownResolutionService =
-                        new UnknownResolutionService(llmClient, routerService);
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonResourceLoader jsonResourceLoader = new JsonResourceLoader(objectMapper);
 
-                TechnicalDocsConfig technicalDocsConfig = TechnicalDocsConfig.load();
+                AgentCatalog agentCatalog =
+                        jsonResourceLoader.load(ResourcePaths.AGENTS_CATALOG, AgentCatalog.class);
+
+                RouterPromptDefinition routerPromptDefinition =
+                        jsonResourceLoader.load(ResourcePaths.ROUTER_PROMPT, RouterPromptDefinition.class);
+
+                UnknownResolutionPromptDefinition unknownResolutionPromptDefinition =
+                        jsonResourceLoader.load(
+                                ResourcePaths.UNKNOWN_RESOLUTION_PROMPT,
+                                UnknownResolutionPromptDefinition.class
+                        );
+
+                BillingSpecialistPromptDefinition billingPromptDefinition =
+                        jsonResourceLoader.load(
+                                ResourcePaths.BILLING_SPECIALIST_PROMPT,
+                                BillingSpecialistPromptDefinition.class
+                        );
+
+                BillingSpecialistErrorPromptDefinition billingErrorPromptDefinition =
+                        jsonResourceLoader.load(
+                                ResourcePaths.BILLING_SPECIALIST_ERROR_PROMPT,
+                                BillingSpecialistErrorPromptDefinition.class
+                        );
+
+                TechnicalSpecialistPromptDefinition technicalPromptDefinition =
+                        jsonResourceLoader.load(
+                                ResourcePaths.TECHNICAL_SPECIALIST_PROMPT,
+                                TechnicalSpecialistPromptDefinition.class
+                        );
+
+                ConsoleMessages messages =
+                        jsonResourceLoader.load(ResourcePaths.CONSOLE_MESSAGES, ConsoleMessages.class);
+
+                ConsoleCommands commands =
+                        jsonResourceLoader.load(ResourcePaths.CONSOLE_COMMANDS, ConsoleCommands.class);
+
+                TechnicalDocsConfig technicalDocsConfig =
+                        jsonResourceLoader.load(ResourcePaths.TECHNICAL_DOCS_CONFIG, TechnicalDocsConfig.class);
+
+                RouterPromptFactory routerPromptFactory = new RouterPromptFactory();
+                UnknownResolutionPromptFactory unknownResolutionPromptFactory =
+                        new UnknownResolutionPromptFactory();
+                BillingSpecialistPromptFactory billingPromptFactory =
+                        new BillingSpecialistPromptFactory();
+                BillingSpecialistErrorPromptFactory billingErrorPromptFactory =
+                        new BillingSpecialistErrorPromptFactory();
+                TechnicalSpecialistPromptFactory technicalSpecialistPromptFactory =
+                        new TechnicalSpecialistPromptFactory();
+
+                LlmClient llmClient = new LlmClient();
+
+                RouterService routerService = new RouterService(
+                        llmClient,
+                        routerPromptFactory,
+                        objectMapper,
+                        agentCatalog,
+                        routerPromptDefinition
+                );
+
+                UnknownResolutionService unknownResolutionService =
+                        new UnknownResolutionService(
+                                llmClient,
+                                routerService,
+                                objectMapper,
+                                agentCatalog,
+                                routerPromptDefinition,
+                                unknownResolutionPromptDefinition,
+                                unknownResolutionPromptFactory
+                        );
+
                 TechnicalDocumentLoader technicalDocumentLoader =
                         new TechnicalDocumentLoader(technicalDocsConfig);
                 TechnicalDocumentChunker technicalDocumentChunker =
@@ -103,10 +182,25 @@ public class Main {
 
                 AgentRegistry agentRegistry = new AgentRegistry(
                         List.of(
-                                new BillingSpecialistAgent(llmClient, billingService),
-                                new TechnicalSpecialistAgent(llmClient, technicalDocumentationService),
+                                new BillingSpecialistAgent(
+                                        llmClient,
+                                        billingService,
+                                        objectMapper,
+                                        billingPromptDefinition,
+                                        billingPromptFactory,
+                                        billingErrorPromptDefinition,
+                                        billingErrorPromptFactory
+                                ),
+                                new TechnicalSpecialistAgent(
+                                        llmClient,
+                                        technicalDocumentationService,
+                                        objectMapper,
+                                        technicalPromptDefinition,
+                                        technicalSpecialistPromptFactory
+                                ),
                                 new GeneralAgent(llmClient)
-                        )
+                        ),
+                        agentCatalog
                 );
 
                 PlanStepExecutor planStepExecutor = new PlanStepExecutor(agentRegistry);
@@ -121,7 +215,7 @@ public class Main {
                         List.of(
                                 new HelpCommand(),
                                 new ExitCommand(),
-                                new AgentsCommand(),
+                                new AgentsCommand(agentCatalog),
                                 new HistoryCommand()
                         ),
                         commands.getCommands()

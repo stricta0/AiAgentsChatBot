@@ -1,5 +1,8 @@
 package org.example.technicaldocs;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.config.JsonResourceLoader;
+import org.example.config.ResourcePaths;
 import org.example.technicaldocs.config.TechnicalDocsConfig;
 import org.example.technicaldocs.model.TechnicalDocument;
 import org.example.technicaldocs.model.TechnicalDocumentChunk;
@@ -15,7 +18,11 @@ class TechnicalDocumentChunkerTest {
 
     @Test
     void shouldLoadConfigFromResources() {
-        TechnicalDocsConfig config = TechnicalDocsConfig.load();
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonResourceLoader jsonResourceLoader = new JsonResourceLoader(objectMapper);
+
+        TechnicalDocsConfig config =
+                jsonResourceLoader.load(ResourcePaths.TECHNICAL_DOCS_CONFIG, TechnicalDocsConfig.class);
 
         assertEquals("docs/sources", config.getDocumentsPath());
         assertEquals(3500, config.getMaxChunkLengthChars());
@@ -27,7 +34,12 @@ class TechnicalDocumentChunkerTest {
 
     @Test
     void shouldChunkMarkdownDocumentUsingHeadings() {
-        TechnicalDocsConfig config = TechnicalDocsConfig.load();
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonResourceLoader jsonResourceLoader = new JsonResourceLoader(objectMapper);
+
+        TechnicalDocsConfig config =
+                jsonResourceLoader.load(ResourcePaths.TECHNICAL_DOCS_CONFIG, TechnicalDocsConfig.class);
+
         TechnicalDocumentChunker chunker = new TechnicalDocumentChunker(config);
 
         TechnicalDocument document = loadResourceDocument(
@@ -161,7 +173,12 @@ class TechnicalDocumentChunkerTest {
 
     @Test
     void shouldThrowForUnsupportedExtension() {
-        TechnicalDocsConfig config = TechnicalDocsConfig.load();
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonResourceLoader jsonResourceLoader = new JsonResourceLoader(objectMapper);
+
+        TechnicalDocsConfig config =
+                jsonResourceLoader.load(ResourcePaths.TECHNICAL_DOCS_CONFIG, TechnicalDocsConfig.class);
+
         TechnicalDocumentChunker chunker = new TechnicalDocumentChunker(config);
 
         TechnicalDocument badDocument = new TechnicalDocument(
@@ -183,7 +200,12 @@ class TechnicalDocumentChunkerTest {
 
     @Test
     void shouldPreserveChunkMetadata() {
-        TechnicalDocsConfig config = TechnicalDocsConfig.load();
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonResourceLoader jsonResourceLoader = new JsonResourceLoader(objectMapper);
+
+        TechnicalDocsConfig config =
+                jsonResourceLoader.load(ResourcePaths.TECHNICAL_DOCS_CONFIG, TechnicalDocsConfig.class);
+
         TechnicalDocumentChunker chunker = new TechnicalDocumentChunker(config);
 
         TechnicalDocument document = loadResourceDocument(

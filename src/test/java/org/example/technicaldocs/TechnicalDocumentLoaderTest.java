@@ -1,5 +1,8 @@
 package org.example.technicaldocs;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.config.JsonResourceLoader;
+import org.example.config.ResourcePaths;
 import org.example.technicaldocs.config.TechnicalDocsConfig;
 import org.example.technicaldocs.model.TechnicalDocument;
 import org.junit.jupiter.api.Test;
@@ -15,7 +18,12 @@ class TechnicalDocumentLoaderTest {
 
     @Test
     void shouldLoadOnlySupportedDocumentsFromResources() {
-        TechnicalDocsConfig config = TechnicalDocsConfig.load();
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonResourceLoader jsonResourceLoader = new JsonResourceLoader(objectMapper);
+
+        TechnicalDocsConfig config =
+                jsonResourceLoader.load(ResourcePaths.TECHNICAL_DOCS_CONFIG, TechnicalDocsConfig.class);
+
         TechnicalDocumentLoader loader = new TechnicalDocumentLoader(config);
 
         List<TechnicalDocument> documents = loader.loadDocuments();
@@ -39,7 +47,12 @@ class TechnicalDocumentLoaderTest {
 
     @Test
     void shouldPrintWarningForUnsupportedFiles() {
-        TechnicalDocsConfig config = TechnicalDocsConfig.load();
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonResourceLoader jsonResourceLoader = new JsonResourceLoader(objectMapper);
+
+        TechnicalDocsConfig config =
+                jsonResourceLoader.load(ResourcePaths.TECHNICAL_DOCS_CONFIG, TechnicalDocsConfig.class);
+
         TechnicalDocumentLoader loader = new TechnicalDocumentLoader(config);
 
         PrintStream originalErr = System.err;

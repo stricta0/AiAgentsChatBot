@@ -15,12 +15,18 @@ public class RouterService {
     private final AgentCatalog agentCatalog;
     private final RouterPromptDefinition routerPromptDefinition;
 
-    public RouterService(LlmClient llmClient) {
+    public RouterService(
+            LlmClient llmClient,
+            RouterPromptFactory promptFactory,
+            ObjectMapper objectMapper,
+            AgentCatalog agentCatalog,
+            RouterPromptDefinition routerPromptDefinition
+    ) {
         this.llmClient = llmClient;
-        this.promptFactory = new RouterPromptFactory();
-        this.objectMapper = new ObjectMapper();
-        this.agentCatalog = AgentCatalog.load();
-        this.routerPromptDefinition = RouterPromptDefinition.load();
+        this.promptFactory = promptFactory;
+        this.objectMapper = objectMapper;
+        this.agentCatalog = agentCatalog;
+        this.routerPromptDefinition = routerPromptDefinition;
     }
 
     public RoutingPlan route(String userMessage, ConversationHistory history) throws Exception {

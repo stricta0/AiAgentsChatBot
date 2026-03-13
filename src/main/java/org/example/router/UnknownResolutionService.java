@@ -21,14 +21,22 @@ public class UnknownResolutionService {
     private final UnknownResolutionPromptDefinition unknownResolutionPromptDefinition;
     private final UnknownResolutionPromptFactory unknownResolutionPromptFactory;
 
-    public UnknownResolutionService(LlmClient llmClient, RouterService routerService) {
+    public UnknownResolutionService(
+            LlmClient llmClient,
+            RouterService routerService,
+            ObjectMapper objectMapper,
+            AgentCatalog agentCatalog,
+            RouterPromptDefinition routerPromptDefinition,
+            UnknownResolutionPromptDefinition unknownResolutionPromptDefinition,
+            UnknownResolutionPromptFactory unknownResolutionPromptFactory
+    ) {
         this.llmClient = llmClient;
         this.routerService = routerService;
-        this.objectMapper = new ObjectMapper();
-        this.agentCatalog = AgentCatalog.load();
-        this.routerPromptDefinition = RouterPromptDefinition.load();
-        this.unknownResolutionPromptDefinition = UnknownResolutionPromptDefinition.load();
-        this.unknownResolutionPromptFactory = new UnknownResolutionPromptFactory();
+        this.objectMapper = objectMapper;
+        this.agentCatalog = agentCatalog;
+        this.routerPromptDefinition = routerPromptDefinition;
+        this.unknownResolutionPromptDefinition = unknownResolutionPromptDefinition;
+        this.unknownResolutionPromptFactory = unknownResolutionPromptFactory;
     }
 
     public Optional<RoutingPlan> resolve(
