@@ -73,7 +73,7 @@ mvn test
 ### 5. Start the application
 
 ```bash
-mvn exec:java -Dexec.mainClass="org.example.Main"
+mvn exec:java
 ```
 
 ---
@@ -305,32 +305,154 @@ Final response / clarification request / abort
 ```text
 src
 ├── main
-│   ├── java/org/example
-│   │   ├── agent
-│   │   │   ├── impl
-│   │   │   ├── prompt
-│   │   │   └── ...
-│   │   ├── billing
-│   │   ├── config
-│   │   ├── conversation
-│   │   ├── database
-│   │   ├── llm
-│   │   ├── router
-│   │   ├── technicaldocs
-│   │   ├── ui
-│   │   └── Main.java
+│   ├── java
+│   │   └── org
+│   │       └── example
+│   │           ├── agent
+│   │           │   ├── AgentCatalog.java
+│   │           │   ├── AgentDefinition.java
+│   │           │   ├── AgentExecutionException.java
+│   │           │   ├── AgentExecutionResult.java
+│   │           │   ├── AgentExecutionStatus.java
+│   │           │   ├── AgentRegistry.java                    # validates configured agents and maps names to runtime implementations
+│   │           │   ├── PlanStepExecutor.java                 # executes a single routing step using the proper agent
+│   │           │   ├── PromptExecutionAbortException.java
+│   │           │   ├── RoutingPlanOrchestrator.java
+│   │           │   ├── SupportAgent.java                     # common agent contract
+│   │           │   ├── impl
+│   │           │   │   ├── BillingSpecialistAgent.java       # billing agent backed by SQL data
+│   │           │   │   ├── GeneralAgent.java                 # general fallback agent for explicitly allowed GENERAL steps
+│   │           │   │   └── TechnicalSpecialistAgent.java     # technical agent grounded in retrieved documentation
+│   │           │   └── prompt
+│   │           │       ├── BillingSpecialistErrorPromptDefinition.java
+│   │           │       ├── BillingSpecialistErrorPromptFactory.java
+│   │           │       ├── BillingSpecialistPromptDefinition.java
+│   │           │       ├── BillingSpecialistPromptFactory.java
+│   │           │       ├── TechnicalSpecialistPromptDefinition.java
+│   │           │       └── TechnicalSpecialistPromptFactory.java
+│   │           ├── billing
+│   │           │   ├── BillingService.java                   # main billing application service
+│   │           │   ├── CustomerRepository.java
+│   │           │   ├── RefundPolicyRepository.java
+│   │           │   ├── SubscriptionRepository.java
+│   │           │   ├── SupportCaseRepository.java
+│   │           │   └── model
+│   │           │       ├── Customer.java
+│   │           │       ├── RefundPolicy.java
+│   │           │       ├── Subscription.java
+│   │           │       └── SupportCase.java
+│   │           ├── config
+│   │           │   ├── EnvConfig.java                        # loads .env-based runtime configuration
+│   │           │   ├── JsonResourceLoader.java               # central JSON config/resource loader
+│   │           │   └── ResourcePaths.java                    # central resource path constants
+│   │           ├── conversation
+│   │           │   ├── ConversationEntry.java
+│   │           │   └── ConversationHistory.java              # stores multi-turn chat history
+│   │           ├── database
+│   │           │   ├── DatabaseConnectionFactory.java
+│   │           │   ├── DatabaseInitializer.java              # runs init.sql at startup
+│   │           │   └── PostgresContainerManager.java         # starts PostgreSQL via Testcontainers
+│   │           ├── llm
+│   │           │   └── LlmClient.java                        # Gemini API communication layer
+│   │           ├── router
+│   │           │   ├── RouterPromptFactory.java
+│   │           │   ├── RouterService.java                    # generates routing plans from user messages
+│   │           │   ├── UnknownResolutionPromptFactory.java
+│   │           │   ├── UnknownResolutionService.java         # resolves routing plans containing NONE steps
+│   │           │   └── model
+│   │           │       ├── PlanStep.java
+│   │           │       ├── RouterPromptDefinition.java
+│   │           │       ├── RoutingPlan.java                  # structured multi-step routing output
+│   │           │       └── UnknownResolutionPromptDefinition.java
+│   │           ├── technicaldocs
+│   │           │   ├── CosineSimilarityCalculator.java
+│   │           │   ├── EmbeddingClient.java                  # embedding API communication for docs/query vectors
+│   │           │   ├── TechnicalChunkEmbeddingService.java   # chunks docs and computes embeddings
+│   │           │   ├── TechnicalChunkRetriever.java          # retrieves top-k relevant chunks
+│   │           │   ├── TechnicalDocumentationService.java    # preload + retrieval entry point for the technical agent
+│   │           │   ├── TechnicalDocumentChunker.java         # deterministic markdown/text chunking
+│   │           │   ├── TechnicalDocumentLoader.java          # loads supported technical docs from resources
+│   │           │   ├── config
+│   │           │   │   └── TechnicalDocsConfig.java
+│   │           │   └── model
+│   │           │       ├── EmbeddedTechnicalDocumentChunk.java
+│   │           │       ├── TechnicalDocument.java
+│   │           │       ├── TechnicalDocumentChunk.java
+│   │           │       └── TechnicalSearchResult.java
+│   │           ├── ui
+│   │           │   ├── ConsoleChatApplication.java           # main interactive console loop
+│   │           │   ├── ConsoleCommandDefinition.java
+│   │           │   ├── ConsoleCommands.java
+│   │           │   ├── ConsoleMessages.java
+│   │           │   └── command
+│   │           │       ├── ConsoleCommandHandler.java
+│   │           │       ├── ConsoleCommandRegistry.java
+│   │           │       ├── context
+│   │           │       │   └── ConsoleCommandContext.java
+│   │           │       └── impl
+│   │           │           ├── AgentsCommand.java
+│   │           │           ├── ExitCommand.java
+│   │           │           ├── HelpCommand.java
+│   │           │           └── HistoryCommand.java
+│   │           └── Main.java                                 # application bootstrap / composition root
 │   └── resources
 │       ├── agent
+│       │   ├── billing_specialist_error_prompt.json
+│       │   ├── billing_specialist_prompt.json
+│       │   └── technical_specialist_prompt.json
 │       ├── db
+│       │   └── init.sql                                      # schema + seed data for local development/testing
 │       ├── docs
+│       │   ├── docs_config.json
+│       │   └── sources                                        # runtime technical documentation used by TECHNICAL_SPECIALIST
+│       │       ├── api_reference.txt
+│       │       ├── bad_doc.json
+│       │       ├── deployment.md
+│       │       ├── integration.md
+│       │       └── troubleshooting.md
 │       ├── router
+│       │   ├── agents.json                                   # configured agent catalog
+│       │   ├── router_prompt.json
+│       │   └── unknown_resolution_prompt.json
 │       └── ui
+│           ├── console_commands.json
+│           └── console_messages.json
 └── test
-    ├── java/org/example
-    │   ├── agent
-    │   ├── billing
-    │   └── technicaldocs
-    └── resources/docs
+    ├── java
+    │   └── org
+    │       └── example
+    │           ├── agent
+    │           │   ├── PlanStepExecutorTest.java
+    │           │   ├── impl
+    │           │   │   ├── BillingSpecialistAgentTest.java
+    │           │   │   ├── GeneralAgentTest.java
+    │           │   │   └── TechnicalSpecialistAgentTest.java
+    │           │   └── prompt
+    │           │       ├── TechnicalSpecialistPromptDefinitionTest.java
+    │           │       └── TechnicalSpecialistPromptFactoryTest.java
+    │           ├── billing
+    │           │   ├── BillingServiceTest.java
+    │           │   ├── CustomerRepositoryTest.java
+    │           │   ├── RefundPolicyRepositoryTest.java
+    │           │   ├── SubscriptionRepositoryTest.java
+    │           │   └── SupportCaseRepositoryTest.java
+    │           └── technicaldocs
+    │               ├── CosineSimilarityCalculatorTest.java
+    │               ├── EmbeddingClientTest.java
+    │               ├── TechnicalChunkEmbeddingServiceTest.java
+    │               ├── TechnicalChunkRetrieverTest.java
+    │               ├── TechnicalDocumentationServiceTest.java
+    │               ├── TechnicalDocumentChunkerTest.java
+    │               └── TechnicalDocumentLoaderTest.java
+    └── resources
+        └── docs
+            ├── docs_config.json
+            └── sources                                        # dedicated test fixtures, isolated from runtime docs
+                ├── api_reference.txt
+                ├── bad_doc.json
+                ├── deployment.md
+                ├── integration.md
+                └── troubleshooting.md
 ```
 
 ### Important directories
@@ -627,7 +749,7 @@ mvn test
 Start the console application:
 
 ```bash
-mvn exec:java -Dexec.mainClass="org.example.Main"
+mvn exec:java
 ```
 
 ---
