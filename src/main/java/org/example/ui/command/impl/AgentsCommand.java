@@ -1,7 +1,8 @@
-package org.example.ui.command;
+package org.example.ui.command.impl;
 
-import org.example.router.model.AgentCatalog;
-import org.example.router.model.AgentDefinition;
+import org.example.agent.AgentCatalog;
+import org.example.agent.AgentDefinition;
+import org.example.ui.command.ConsoleCommandHandler;
 import org.example.ui.command.context.ConsoleCommandContext;
 
 import java.util.List;

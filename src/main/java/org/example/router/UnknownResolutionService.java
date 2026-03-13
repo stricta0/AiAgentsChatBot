@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.conversation.ConversationHistory;
 import org.example.llm.LlmClient;
-import org.example.router.model.AgentCatalog;
+import org.example.agent.AgentCatalog;
 import org.example.router.model.RouterPromptDefinition;
 import org.example.router.model.RoutingPlan;
 import org.example.router.model.UnknownResolutionPromptDefinition;

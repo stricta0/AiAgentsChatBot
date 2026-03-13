@@ -1,6 +1,6 @@
 package org.example.router;
 
-import org.example.router.model.AgentDefinition;
+import org.example.agent.AgentDefinition;
 import org.example.router.model.RouterPromptDefinition;
 import org.example.router.model.RoutingPlan;
 import org.example.router.model.UnknownResolutionPromptDefinition;

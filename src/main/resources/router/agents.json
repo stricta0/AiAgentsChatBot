@@ -27,24 +27,32 @@
 
     {
       "name": "BILLING_SPECIALIST",
-      "description": "Handles billing-related support requests and billing actions.",
+      "description": "Handles billing-related support requests using billing data stored in the SQL database. The agent can check a customer's current subscription plan, explain the refund policy for that subscription, and open a refund support case after collecting all required information.",
       "canHandle": [
-        "plan and price questions",
-        "refund requests",
-        "invoice questions",
-        "subscription cancellation",
-        "opening billing support cases"
+        "checking the customer's current subscription plan",
+        "returning the subscription price",
+        "confirming whether the subscription is active",
+        "explaining refund availability",
+        "describing refund conditions",
+        "providing estimated refund processing time",
+        "asking for missing billing data such as email or refund description",
+        "opening refund support cases",
+        "generating and returning refund case numbers"
       ],
       "cannotHandle": [
         "technical troubleshooting",
         "API behavior questions",
         "general knowledge questions",
-        "technical-document interpretation"
+        "technical-document interpretation",
+        "issues that require technical documentation lookup"
       ],
       "examples": [
         "What plan am I on?",
+        "My email is john.doe@example.com - check my subscription.",
         "Can I get a refund?",
-        "Open a billing ticket for me."
+        "What is the refund policy for my account?",
+        "Open a refund case for me.",
+        "Create a refund ticket for alice.smith@example.com."
       ]
     }
   ]

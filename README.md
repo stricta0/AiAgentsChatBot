@@ -27,6 +27,101 @@ gemini-2.5-flash-lite - wieksze darmowe limity
 # TODO: hardcodowane niektóre nazwy np. w UnknownResolutionService ABORT I RESOLVED 
 # TODO: niektóre funkcje się powtarzają np. stripCodeFences w Router i UnknownResolution Service
 # TODO: pousuwać .load() z polowy tych serwisów i zamienic na przekazywanie przez konstruktor
+# TODO: wywalić hardcoded elementy z database.PostgresContainerManager do .env
+
+## Billing Specialist Agent
+
+`BILLING_SPECIALIST` is responsible for handling billing-related support requests that can be resolved using billing data stored in the SQL database.
+
+At the current stage, the agent supports three main capabilities:
+
+### 1. Check customer subscription plan
+
+The agent can:
+
+- identify which subscription plan the customer is currently on,
+- return the monthly price of that plan,
+- confirm whether the subscription is active.
+
+If the user asks about their plan but does not provide an email address, the agent should first ask for the email.  
+Once the email is available, the agent should:
+
+1. find the customer by email,
+2. find the active subscription for that customer,
+3. return the plan name, monthly price, and subscription status.
+
+Example user requests:
+
+- `What plan am I on?`
+- `Check my subscription`
+- `What is my current plan? My email is john.doe@example.com`
+
+---
+
+### 2. Explain refund policy
+
+The agent can:
+
+- explain whether a refund is available,
+- describe the refund conditions,
+- provide the estimated refund processing time.
+
+If the user asks about a refund but does not provide an email address, the agent should first ask for the email.  
+Once the email is available, the agent should:
+
+1. find the customer by email,
+2. find the active subscription for that customer,
+3. determine the customer’s current plan,
+4. find the refund policy for that plan,
+5. return refund availability, refund window, processing time, and policy description.
+
+Example user requests:
+
+- `Can I get a refund?`
+- `What is the refund policy for my subscription?`
+- `Is refund available for my account? My email is alice.smith@example.com`
+
+---
+
+### 3. Open refund support case
+
+The agent can:
+
+- create a refund support case,
+- generate and return a case number,
+- confirm that the case has been saved,
+- ask for a short problem description if needed.
+
+When opening a refund case, the agent should collect only the data that is actually required to create the record.  
+The agent should determine which fields can be filled automatically by the system and ask the user only for the missing business information.
+
+For the current billing schema, the agent should:
+
+1. ask for the user’s email if it is not already known,
+2. find the customer by email,
+3. ask for a short refund-related description if it is missing,
+4. create the refund support case,
+5. return the generated case number and confirmation.
+
+Example user requests:
+
+- `Open a refund case for me`
+- `I want to request a refund`
+- `Create a refund ticket for john.doe@example.com`
+
+---
+
+### Notes
+
+The `BILLING_SPECIALIST` agent is expected to handle the full billing flow for its assigned task, not just a single micro-step.  
+This means that once a billing-related request is routed to this agent, it should independently:
+
+- identify the exact billing intent,
+- collect missing required data from the user,
+- use the SQL-backed billing module,
+- return the final billing response.
+
+
 # AI Support Agents Router
 
 ## Overview

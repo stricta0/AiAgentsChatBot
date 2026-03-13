@@ -1,14 +1,30 @@
 package org.example;
 
+import org.example.agent.AgentRegistry;
+import org.example.agent.PlanStepExecutor;
+import org.example.agent.impl.BillingSpecialistAgent;
+import org.example.agent.impl.TechnicalSpecialistAgent;
+import org.example.billing.BillingService;
+import org.example.billing.CustomerRepository;
+import org.example.billing.RefundPolicyRepository;
+import org.example.billing.SubscriptionRepository;
+import org.example.billing.SupportCaseRepository;
 import org.example.conversation.ConversationHistory;
+import org.example.database.DatabaseConnectionFactory;
+import org.example.database.DatabaseInitializer;
+import org.example.database.PostgresContainerManager;
 import org.example.llm.LlmClient;
 import org.example.router.RouterService;
 import org.example.router.UnknownResolutionService;
 import org.example.ui.ConsoleChatApplication;
 import org.example.ui.ConsoleCommands;
 import org.example.ui.ConsoleMessages;
-import org.example.ui.command.*;
+import org.example.ui.command.ConsoleCommandRegistry;
 import org.example.ui.command.context.ConsoleCommandContext;
+import org.example.ui.command.impl.AgentsCommand;
+import org.example.ui.command.impl.ExitCommand;
+import org.example.ui.command.impl.HelpCommand;
+import org.example.ui.command.impl.HistoryCommand;
 
 import java.util.List;
 import java.util.Scanner;
@@ -16,47 +32,93 @@ import java.util.Scanner;
 public class Main {
 
     public static void main(String[] args) {
-        ConsoleMessages messages = ConsoleMessages.load();
-        ConsoleCommands commands = ConsoleCommands.load();
-        ConversationHistory history = new ConversationHistory();
+        PostgresContainerManager postgresContainerManager = new PostgresContainerManager();
 
-        ConsoleCommandRegistry commandRegistry = new ConsoleCommandRegistry(
-                List.of(
-                        new HelpCommand(),
-                        new ExitCommand(),
-                        new AgentsCommand(),
-                        new HistoryCommand()
-                )
-        );
+        try {
+            postgresContainerManager.start();
 
-        ConsoleCommandContext commandContext = new ConsoleCommandContext(
-                messages,
-                commands,
-                history
-        );
+            DatabaseInitializer databaseInitializer = new DatabaseInitializer(
+                    postgresContainerManager.getJdbcUrl(),
+                    postgresContainerManager.getUsername(),
+                    postgresContainerManager.getPassword()
+            );
+            databaseInitializer.initialize();
 
-
-
-        try (Scanner scanner = new Scanner(System.in)) {
-            LlmClient llmClient = new LlmClient();
-            RouterService routerService = new RouterService(llmClient);
-
-            UnknownResolutionService unknownResolutionService =
-                    new UnknownResolutionService(llmClient, routerService);
-
-
-            ConsoleChatApplication application = new ConsoleChatApplication(
-                    routerService,
-                    messages,
-                    commands,
-                    commandRegistry,
-                    commandContext,
-                    scanner,
-                    unknownResolutionService,
-                    history
+            DatabaseConnectionFactory databaseConnectionFactory = new DatabaseConnectionFactory(
+                    postgresContainerManager.getJdbcUrl(),
+                    postgresContainerManager.getUsername(),
+                    postgresContainerManager.getPassword()
             );
 
-            application.run();
+            CustomerRepository customerRepository = new CustomerRepository(databaseConnectionFactory);
+            SubscriptionRepository subscriptionRepository = new SubscriptionRepository(databaseConnectionFactory);
+            RefundPolicyRepository refundPolicyRepository = new RefundPolicyRepository(databaseConnectionFactory);
+            SupportCaseRepository supportCaseRepository = new SupportCaseRepository(databaseConnectionFactory);
+
+            BillingService billingService = new BillingService(
+                    customerRepository,
+                    subscriptionRepository,
+                    refundPolicyRepository,
+                    supportCaseRepository
+            );
+
+            ConsoleMessages messages = ConsoleMessages.load();
+            ConsoleCommands commands = ConsoleCommands.load();
+            ConversationHistory history = new ConversationHistory();
+
+            try (Scanner scanner = new Scanner(System.in)) {
+                LlmClient llmClient = new LlmClient();
+                RouterService routerService = new RouterService(llmClient);
+                UnknownResolutionService unknownResolutionService =
+                        new UnknownResolutionService(llmClient, routerService);
+
+                AgentRegistry agentRegistry = new AgentRegistry(
+                        List.of(
+                                new BillingSpecialistAgent(llmClient, billingService),
+                                new TechnicalSpecialistAgent()
+                        )
+                );
+
+                PlanStepExecutor planStepExecutor = new PlanStepExecutor(agentRegistry);
+
+                ConsoleCommandContext commandContext = new ConsoleCommandContext(
+                        messages,
+                        commands,
+                        history
+                );
+
+                ConsoleCommandRegistry commandRegistry = new ConsoleCommandRegistry(
+                        List.of(
+                                new HelpCommand(),
+                                new ExitCommand(),
+                                new AgentsCommand(),
+                                new HistoryCommand()
+                        ),
+                        commands.getCommands()
+                );
+
+                ConsoleChatApplication application = new ConsoleChatApplication(
+                        routerService,
+                        messages,
+                        commands,
+                        commandRegistry,
+                        commandContext,
+                        scanner,
+                        unknownResolutionService,
+                        history,
+                        planStepExecutor
+                );
+
+                application.run();
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                postgresContainerManager.stop();
+            } catch (Exception ignored) {
+            }
         }
     }
 }

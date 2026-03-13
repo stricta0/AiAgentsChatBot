@@ -1,6 +1,7 @@
-package org.example.ui.command;
+package org.example.ui.command.impl;
 
 import org.example.ui.ConsoleCommandDefinition;
+import org.example.ui.command.ConsoleCommandHandler;
 import org.example.ui.command.context.ConsoleCommandContext;
 
 public class HelpCommand implements ConsoleCommandHandler {

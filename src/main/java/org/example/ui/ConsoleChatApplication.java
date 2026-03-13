@@ -1,8 +1,13 @@
 package org.example.ui;
 
+import org.example.agent.AgentExecutionResult;
+import org.example.agent.AgentExecutionStatus;
+import org.example.agent.PlanStepExecutor;
+import org.example.agent.PromptExecutionAbortException;
 import org.example.conversation.ConversationHistory;
 import org.example.router.RouterService;
 import org.example.router.UnknownResolutionService;
+import org.example.router.model.PlanStep;
 import org.example.router.model.RoutingPlan;
 import org.example.ui.command.ConsoleCommandHandler;
 import org.example.ui.command.ConsoleCommandRegistry;
@@ -21,6 +26,7 @@ public class ConsoleChatApplication {
     private final Scanner scanner;
     private final UnknownResolutionService unknownResolutionService;
     private final ConversationHistory history;
+    private final PlanStepExecutor planStepExecutor;
 
     public ConsoleChatApplication(
             RouterService routerService,
@@ -30,7 +36,8 @@ public class ConsoleChatApplication {
             ConsoleCommandContext commandContext,
             Scanner scanner,
             UnknownResolutionService unknownResolutionService,
-            ConversationHistory history
+            ConversationHistory history,
+            PlanStepExecutor planStepExecutor
     ) {
         this.routerService = routerService;
         this.messages = messages;
@@ -40,6 +47,7 @@ public class ConsoleChatApplication {
         this.scanner = scanner;
         this.unknownResolutionService = unknownResolutionService;
         this.history = history;
+        this.planStepExecutor = planStepExecutor;
     }
 
     public void run() {
@@ -109,8 +117,52 @@ public class ConsoleChatApplication {
             );
             showToUser(message);
 
+            executeRoutingPlan(routingPlan);
+
         } catch (Exception e) {
             showToUser(messages.getErrorPrefix() + e.getMessage());
+        }
+    }
+
+    private void executeRoutingPlan(RoutingPlan routingPlan) {
+        for (PlanStep step : routingPlan.getSteps()) {
+            boolean stepCompleted = false;
+
+            while (!stepCompleted) {
+                try {
+                    AgentExecutionResult result = planStepExecutor.executeStep(step, history);
+
+                    if (result.message() != null && !result.message().isBlank()) {
+                        showToUser(result.message());
+                    }
+
+                    if (result.status() == AgentExecutionStatus.SUCCESS) {
+                        stepCompleted = true;
+                        continue;
+                    }
+
+                    if (result.status() == AgentExecutionStatus.CANNOT_HANDLE) {
+                        return;
+                    }
+
+                    if (result.status() == AgentExecutionStatus.NEEDS_USER_INPUT) {
+                        String userInput = getFromUser(messages.getPrompt());
+
+                        if (userInput.isBlank()) {
+                            showToUser(messages.getEmptyMessageWarning());
+                        }
+                    }
+
+                } catch (PromptExecutionAbortException e) {
+                    if (e.getMessage() != null && !e.getMessage().isBlank()) {
+                        showToUser(e.getMessage());
+                    }
+                    return;
+                } catch (Exception e) {
+                    showToUser(messages.getErrorPrefix() + e.getMessage());
+                    return;
+                }
+            }
         }
     }
 
@@ -168,7 +220,11 @@ public class ConsoleChatApplication {
     private String getFromUser(String prompt) {
         System.out.print(prompt);
         String input = scanner.nextLine().trim();
-        history.addUserMessage(input);
+
+        if (!input.isBlank()) {
+            history.addUserMessage(input);
+        }
+
         return input;
     }
 
