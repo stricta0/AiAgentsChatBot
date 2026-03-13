@@ -28,6 +28,116 @@ gemini-2.5-flash-lite - wieksze darmowe limity
 # TODO: niektóre funkcje się powtarzają np. stripCodeFences w Router i UnknownResolution Service
 # TODO: pousuwać .load() z polowy tych serwisów i zamienic na przekazywanie przez konstruktor
 # TODO: wywalić hardcoded elementy z database.PostgresContainerManager do .env
+# TODO: przeniesc przykladowe dokumenty do jakiegos folderu z test (chodzi o dokuemnty z resources/docs - tak zeby testy wykonywaly sie na tych dokumentach ale zeby po zmienie dokumentow testy sie nie rozjechaly)
+
+## Technical Documentation Chunking
+
+The `TECHNICAL_SPECIALIST` agent uses a deterministic document chunking pipeline before retrieval.
+
+The goal of this process is to split local technical documentation into semantically meaningful chunks that can later be embedded, searched, and passed to the LLM as grounded context.
+
+### Supported document types
+
+The current implementation supports:
+
+- `.md`
+- `.txt`
+
+Any other file type found in the configured documentation directory is ignored.  
+A warning is printed during loading to clearly indicate that the file is unsupported and will not be used by the agent.
+
+---
+
+### Configuration
+
+Chunking behavior is controlled by `docs/docs_config.json`.
+
+Current configuration options include:
+
+- `documentsPath` — path to the local documentation folder inside resources
+- `maxChunkLengthChars` — maximum allowed chunk size in characters
+- `fallbackOverlapChars` — overlap size used when fallback chunk splitting is required
+- `supportedExtensions` — list of supported file extensions
+
+This keeps chunking rules configurable and avoids hardcoding these values in application code.
+
+---
+
+### Markdown chunking strategy
+
+For `.md` documents, chunking is performed hierarchically based on Markdown headings.
+
+The algorithm works as follows:
+
+1. Split the document by top-level `#` headings
+2. If a resulting chunk is still too large, split it by `##`
+3. If a resulting chunk is still too large, split it by `###`
+4. Continue this process down to `######`
+5. If the section is still too large even after exhausting heading levels, use fallback splitting:
+   - first by paragraphs / blank lines
+   - then by sentences if needed
+   - finally by character-based fallback if a single sentence is still too large
+
+This approach preserves the semantic structure of Markdown documentation for as long as possible before falling back to more technical splitting rules.
+
+---
+
+### Plain text chunking strategy
+
+For `.txt` documents, there is no heading hierarchy, so chunking uses fallback rules directly:
+
+1. Split by paragraphs / blank lines
+2. If a chunk is still too large, split by sentences
+3. If a single sentence is still too large, use a character-based fallback split
+
+---
+
+### Fallback overlap
+
+When chunking falls back to paragraph-based, sentence-based, or character-based splitting, the algorithm applies a small overlap between adjacent chunks.
+
+This overlap helps preserve context when important information lies near chunk boundaries.
+
+The overlap size is configurable through `fallbackOverlapChars`.
+
+---
+
+### Chunk metadata
+
+Each generated chunk contains metadata that can later be used during retrieval and answer generation.
+
+Current chunk metadata includes:
+
+- `documentName`
+- `documentType`
+- `headingPath`
+- `chunkIndex`
+- `content`
+
+For Markdown documents, `headingPath` represents the section hierarchy that led to the chunk.  
+For plain text documents, `headingPath` defaults to the document name.
+
+This metadata helps:
+
+- preserve document context
+- explain where the information came from
+- make retrieved results easier to interpret in prompts and debugging
+
+---
+
+### Why this design was chosen
+
+This chunking strategy was designed to satisfy several requirements:
+
+- deterministic retrieval behavior
+- preservation of document structure
+- support for both Markdown and plain text documentation
+- configurable chunk size without hardcoded values
+- robust fallback behavior for unusually long sections
+
+In practice, this means the system prefers semantically meaningful chunks first, and only falls back to lower-level splitting when necessary.
+
+
 
 ## Billing Specialist Agent
 

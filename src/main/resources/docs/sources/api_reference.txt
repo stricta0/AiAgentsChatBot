@@ -1,0 +1,58 @@
+API Reference
+
+The platform exposes several REST API endpoints.
+
+All endpoints require authentication using an API token.
+
+Authorization header format:
+
+Authorization: Bearer <API_TOKEN>
+
+
+User Endpoints
+
+GET /users
+Returns a list of users.
+
+POST /users
+Creates a new user.
+
+PATCH /users/{id}
+Updates user information.
+
+DELETE /users/{id}
+Deletes a user.
+
+
+Error Codes
+
+401 Unauthorized
+Returned when authentication fails.
+
+403 Forbidden
+Returned when the user lacks permissions.
+
+404 Not Found
+Returned when the requested resource does not exist.
+
+
+Best Practices
+
+Always validate API responses.
+
+Retry requests when encountering temporary failures.
+
+Use exponential backoff when retrying requests.
+
+Log all API requests for debugging purposes.
+
+
+Security Recommendations
+
+Never expose API tokens in client-side code.
+
+Store API tokens securely.
+
+Rotate API tokens regularly.
+
+Restrict token permissions whenever possible.

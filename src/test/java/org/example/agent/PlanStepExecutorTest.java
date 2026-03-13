@@ -14,6 +14,7 @@ class PlanStepExecutorTest {
 
     private SupportAgent billingAgent;
     private SupportAgent technicalAgent;
+    private SupportAgent generalAgent;
     private AgentRegistry agentRegistry;
     private PlanStepExecutor planStepExecutor;
 
@@ -21,11 +22,13 @@ class PlanStepExecutorTest {
     void setUp() {
         billingAgent = mock(SupportAgent.class);
         technicalAgent = mock(SupportAgent.class);
+        generalAgent = mock(SupportAgent.class);
 
         when(billingAgent.getName()).thenReturn("BILLING_SPECIALIST");
         when(technicalAgent.getName()).thenReturn("TECHNICAL_SPECIALIST");
+        when(generalAgent.getName()).thenReturn("GENERAL");
 
-        agentRegistry = new AgentRegistry(List.of(billingAgent, technicalAgent));
+        agentRegistry = new AgentRegistry(List.of(billingAgent, technicalAgent, generalAgent));
         planStepExecutor = new PlanStepExecutor(agentRegistry);
     }
 
@@ -49,6 +52,7 @@ class PlanStepExecutorTest {
 
         verify(billingAgent).execute(step, history);
         verify(technicalAgent, never()).execute(any(), any());
+        verify(generalAgent, never()).execute(any(), any());
     }
 
     @Test

@@ -3,6 +3,7 @@ package org.example;
 import org.example.agent.AgentRegistry;
 import org.example.agent.PlanStepExecutor;
 import org.example.agent.impl.BillingSpecialistAgent;
+import org.example.agent.impl.GeneralAgent;
 import org.example.agent.impl.TechnicalSpecialistAgent;
 import org.example.billing.BillingService;
 import org.example.billing.CustomerRepository;
@@ -16,6 +17,14 @@ import org.example.database.PostgresContainerManager;
 import org.example.llm.LlmClient;
 import org.example.router.RouterService;
 import org.example.router.UnknownResolutionService;
+import org.example.technicaldocs.CosineSimilarityCalculator;
+import org.example.technicaldocs.EmbeddingClient;
+import org.example.technicaldocs.TechnicalChunkEmbeddingService;
+import org.example.technicaldocs.TechnicalChunkRetriever;
+import org.example.technicaldocs.TechnicalDocumentChunker;
+import org.example.technicaldocs.TechnicalDocumentLoader;
+import org.example.technicaldocs.TechnicalDocumentationService;
+import org.example.technicaldocs.config.TechnicalDocsConfig;
 import org.example.ui.ConsoleChatApplication;
 import org.example.ui.ConsoleCommands;
 import org.example.ui.ConsoleMessages;
@@ -72,10 +81,31 @@ public class Main {
                 UnknownResolutionService unknownResolutionService =
                         new UnknownResolutionService(llmClient, routerService);
 
+                TechnicalDocsConfig technicalDocsConfig = TechnicalDocsConfig.load();
+                TechnicalDocumentLoader technicalDocumentLoader =
+                        new TechnicalDocumentLoader(technicalDocsConfig);
+                TechnicalDocumentChunker technicalDocumentChunker =
+                        new TechnicalDocumentChunker(technicalDocsConfig);
+                EmbeddingClient embeddingClient = new EmbeddingClient(technicalDocsConfig);
+                TechnicalChunkEmbeddingService technicalChunkEmbeddingService =
+                        new TechnicalChunkEmbeddingService(technicalDocumentChunker, embeddingClient);
+                TechnicalChunkRetriever technicalChunkRetriever =
+                        new TechnicalChunkRetriever(new CosineSimilarityCalculator());
+                TechnicalDocumentationService technicalDocumentationService =
+                        new TechnicalDocumentationService(
+                                technicalDocumentLoader,
+                                technicalChunkEmbeddingService,
+                                technicalChunkRetriever,
+                                embeddingClient
+                        );
+
+                technicalDocumentationService.initialize();
+
                 AgentRegistry agentRegistry = new AgentRegistry(
                         List.of(
                                 new BillingSpecialistAgent(llmClient, billingService),
-                                new TechnicalSpecialistAgent()
+                                new TechnicalSpecialistAgent(llmClient, technicalDocumentationService),
+                                new GeneralAgent(llmClient)
                         )
                 );
 

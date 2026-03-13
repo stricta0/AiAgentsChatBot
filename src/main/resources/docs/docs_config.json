@@ -1,0 +1,10 @@
+{
+  "documentsPath": "docs/sources",
+  "maxChunkLengthChars": 3500,
+  "fallbackOverlapChars": 300,
+  "supportedExtensions": [
+    ".md",
+    ".txt"
+  ],
+  "embeddingModel": "models/gemini-embedding-001"
+}

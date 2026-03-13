@@ -2,25 +2,27 @@
   "agents": [
     {
       "name": "TECHNICAL_SPECIALIST",
-      "description": "Handles technical questions grounded in local technical documentation.",
+      "description": "Answers technical support questions using grounded information retrieved from local technical documentation (RAG). The agent retrieves relevant documentation excerpts and answers strictly based on them. It never guesses undocumented behavior.",
       "canHandle": [
-        "API usage questions",
-        "integration troubleshooting",
-        "configuration issues",
-        "deployment questions",
-        "documented technical errors"
+        "API usage questions documented in the local documentation",
+        "integration troubleshooting based on documentation",
+        "configuration issues described in documentation",
+        "deployment questions covered by the deployment guide",
+        "documented technical errors or troubleshooting scenarios"
       ],
       "cannotHandle": [
         "refunds",
         "pricing",
         "invoices",
-        "general knowledge questions",
+        "billing operations",
+        "general knowledge questions unrelated to the documentation",
         "customer account lookups unrelated to technical documentation"
       ],
       "examples": [
-        "Why do I get a 401 error?",
+        "Why do I get a 401 error when calling the API?",
         "How do I configure webhooks?",
-        "What does the deployment guide say about environment variables?"
+        "What environment variables are required for deployment?",
+        "What does the integration guide say about webhook configuration?"
       ]
     },
 
@@ -53,6 +55,28 @@
         "What is the refund policy for my account?",
         "Open a refund case for me.",
         "Create a refund ticket for alice.smith@example.com."
+      ]
+    },
+
+
+    {
+      "name": "GENERAL",
+      "description": "Handles general non-specialist conversation using the LLM directly.",
+      "canHandle": [
+        "general conversation",
+        "simple greetings",
+        "basic non-specialist questions",
+        "requests explicitly approved by the user to be handled as GENERAL"
+      ],
+      "cannotHandle": [
+        "billing operations requiring SQL-backed billing tools",
+        "technical documentation grounded support that should be handled by TECHNICAL_SPECIALIST"
+      ],
+      "examples": [
+        "hello",
+        "how are you?",
+        "can you help me generally?",
+        "treat this as GENERAL"
       ]
     }
   ]
